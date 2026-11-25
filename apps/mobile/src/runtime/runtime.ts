@@ -27,6 +27,7 @@ import { bleTransport } from './transports/ble';
 import { nfcTransport } from './transports/nfc';
 import { keychainSecretStore } from './transports/secret-store';
 import { useSettings } from './settings-store';
+import { closedLoopBlockReason as gateClosedLoop } from './closed-loop-gate';
 import { useTreatmentSettings } from '../features/treatment/settings-store';
 
 /**
@@ -95,13 +96,7 @@ function closedLoopBlockReason(): string | null {
   const s = useSettings.getState();
   const pumpMeta = s.pumpId ? pumps.get(s.pumpId)?.meta : undefined;
   const cgmMeta = s.cgmId ? cgms.get(s.cgmId)?.meta : undefined;
-  if (!pumpMeta || !cgmMeta) return 'No pump or CGM configured.';
-  if (pumpMeta.readOnly) return 'Shadow mode: Buddy follows your running loop and only suggests. It never doses.';
-  if (pumpMeta.maturity === 'simulator' && cgmMeta.maturity !== 'simulator')
-    return 'Closed loop needs pump and CGM from the same world: a demo pump cannot dose against real glucose.';
-  if (pumpMeta.requiresHardwareCheck && !s.hardwareChecks[pumpMeta.id])
-    return `${pumpMeta.name} is an experimental driver. Complete the hardware check (pump not attached to your body) to enable closed loop.`;
-  return null;
+  return gateClosedLoop(pumpMeta, cgmMeta, s.hardwareChecks);
 }
 
 /** Builds the configured devices. An empty id means "no device" (Trio's "Add pump" state). */
@@ -256,6 +251,9 @@ export function restartRuntime(): Promise<void> {
       demoHub.reset();
       const demo = await buildDevices();
       await restoreData(demo);
+      // The demo world and its clock start over on every restart, so adjustments anchored to the
+      // previous demo clock would sit in its future and switch on unexpectedly later.
+      if (demo) useSettings.getState().update({ override: null, tempTarget: null });
       engine = createEngine();
       schedulePersist(demo);
       useRuntime.setState({ ready: true, demo, deviceError: null, closedLoopBlocked: closedLoopBlockReason(), now: clock.now(), pump: pump ? await pump.status().catch(() => null) : null });

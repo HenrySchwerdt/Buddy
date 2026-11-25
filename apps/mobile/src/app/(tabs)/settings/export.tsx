@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Share, View } from 'react-native';
 import { AVAILABLE_CATEGORIES, buildSettingsExport, EXPORT_CATEGORIES, UNAVAILABLE_CATEGORIES, type ExportCategory } from '@/features/settings-b/export';
@@ -92,8 +92,8 @@ export default function ExportSettingsScreen() {
           backgroundColor: selected.size === 0 ? (c.dark ? '#3A3A3C' : '#D1D1D6') : c.accent,
           opacity: pressed ? 0.85 : 1,
         })}>
-        {exporting ? <ActivityIndicator color="#fff" /> : null}
-        <T color="#FFFFFF">{exporting ? 'Exporting...' : 'Export Settings'}</T>
+        {exporting ? <ActivityIndicator color={c.onAccent} /> : null}
+        <T color={selected.size === 0 ? c.secondary : c.onAccent}>{exporting ? 'Exporting...' : 'Export Settings'}</T>
       </Pressable>
     </TrioScreen>
   );

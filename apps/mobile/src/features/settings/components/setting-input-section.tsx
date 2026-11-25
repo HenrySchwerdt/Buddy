@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { Section, T, useTrioColors } from '@/trio';

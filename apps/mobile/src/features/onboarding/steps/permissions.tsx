@@ -1,5 +1,6 @@
 import { OT } from '../theme';
 import { BenefitRow, Stack } from '../ui';
+import { SYSTEM_SETTINGS } from '@/features/platform-copy';
 
 export function NotificationPermissionStep() {
   return (
@@ -16,7 +17,7 @@ export function NotificationPermissionStep() {
         <BenefitRow icon="app.badge.fill" text="See a badge count when you need a carb correction." />
       </Stack>
       <OT style_="footnote" secondary style={{ paddingTop: 16 }}>
-        You can change these permissions any time in the iOS Settings app.
+        You can change these permissions any time in the {SYSTEM_SETTINGS} app.
       </OT>
     </Stack>
   );
@@ -36,7 +37,7 @@ export function BluetoothPermissionStep() {
         <BenefitRow icon="sensor.tag.radiowaves.forward.fill" text="Receive glucose readings every 5 minutes from your CGM to keep the loop running." />
       </Stack>
       <OT style_="footnote" secondary style={{ paddingTop: 16 }}>
-        You can change these permissions any time in the iOS Settings app.
+        You can change these permissions any time in the {SYSTEM_SETTINGS} app.
       </OT>
     </Stack>
   );

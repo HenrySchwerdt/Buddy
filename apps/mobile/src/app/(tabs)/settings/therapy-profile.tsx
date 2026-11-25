@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { ActionSheetIOS, Alert, Platform } from 'react-native';
 import { LinkButton, NavRow, Row, Section, T, ValueRow, useTrioColors } from '@/trio';
 import { useSettings } from '@/runtime/settings-store';

@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { SnoozeAlertsSheet } from '@/features/settings-b/snooze-sheet';
 import { BorderedButton, ButtonCard, UnavailableRow } from '@/features/settings-b/ui';
 import { useNotificationsEnabled } from '@/features/settings-b/use-notification-permission';
 import { NavRow, Row, Section, T, TrioScreen, useTrioColors } from '@/trio';
+import { SYSTEM_SETTINGS } from '@/features/platform-copy';
 
 /** Trio Settings → Notifications (NotificationsView). */
 export default function NotificationsScreen() {
@@ -19,7 +20,7 @@ export default function NotificationsScreen() {
     warned.current = true;
     Alert.alert(
       '❗ Notifications are Required',
-      "Please authorize notifications by tapping 'Open iOS Settings' > 'Notifications' and enable 'Allow Notifications' for 'Notification Center' and 'Banners' Alerts.",
+      `Please authorize notifications by tapping 'Open ${SYSTEM_SETTINGS}' > 'Notifications' and enable 'Allow Notifications' for 'Notification Center' and 'Banners' Alerts.`,
       [{ text: 'Ok' }],
     );
   }, [enabled]);
@@ -48,9 +49,9 @@ export default function NotificationsScreen() {
             <T>On</T>
           ) : null}
         </Row>
-        <Row onPress={openSettings} accessibilityLabel="Open iOS Settings">
+        <Row onPress={openSettings} accessibilityLabel={`Open ${SYSTEM_SETTINGS}`}>
           <T style={{ flex: 1 }} color={c.tabBar}>
-            Open iOS Settings
+            Open {SYSTEM_SETTINGS}
           </T>
           <SymbolView name="chevron.right" size={13} tintColor={c.secondary} weight="semibold" />
         </Row>

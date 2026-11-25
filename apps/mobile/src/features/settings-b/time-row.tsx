@@ -1,6 +1,6 @@
 import { DatePicker, Host } from '@expo/ui/swift-ui';
 import { datePickerStyle, labelsHidden } from '@expo/ui/swift-ui/modifiers';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { Platform, View } from 'react-native';
 import { PickerRow, Row, T } from '@/trio';
 

@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { Pressable, View } from 'react-native';
 import { toMmol, type CarbEntry, type GlucoseReading, type GlucoseUnit } from '@buddy/core';
 import { Row, Section, T, useTrioColors } from '@/trio';

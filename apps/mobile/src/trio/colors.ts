@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 import { useSettings } from '@/runtime/settings-store';
 
 /**
@@ -16,6 +16,8 @@ export interface TrioColors {
   readonly tabBar: string;
   /** Color.accentColor / systemBlue — primary buttons */
   readonly accent: string;
+  /** Text and icons drawn on `accent` (filled buttons, FAB). */
+  readonly onAccent: string;
   readonly insulin: string;
   readonly basal: string;
   readonly tempBasal: string;
@@ -45,6 +47,7 @@ export const TRIO_DARK: TrioColors = {
   chart: '#21212E',
   tabBar: '#7D8CF2',
   accent: '#0A84FF',
+  onAccent: '#FFFFFF',
   insulin: '#1E96FC',
   basal: '#1E96FC',
   tempBasal: '#1E96FC',
@@ -74,6 +77,7 @@ export const TRIO_LIGHT: TrioColors = {
   chart: '#FFFFFF',
   tabBar: '#7D8CF2',
   accent: '#007AFF',
+  onAccent: '#FFFFFF',
   insulin: '#1E96FC',
   basal: '#1E96FC',
   tempBasal: '#A2D6F9',
@@ -96,10 +100,52 @@ export const TRIO_LIGHT: TrioColors = {
   purple: '#AF52DE',
 };
 
+/*
+ * Android: Material 3 colour roles from the seed #7D8CF2 (Trio's tab tint, tonal-spot scheme).
+ * Surfaces, text and accents follow Material; the data colours (glucose, insulin, carbs, loop
+ * state) keep Trio's values so the chart reads the same on both platforms.
+ */
+export const MD_DARK: TrioColors = {
+  ...TRIO_DARK,
+  bgTop: '#121318',
+  bgBottom: '#121318',
+  chart: '#1F1F25',
+  tabBar: '#BAC3FF',
+  accent: '#BAC3FF',
+  onAccent: '#212C61',
+  primary: '#E4E1E9',
+  secondary: '#C6C5D0',
+  tertiary: '#90909A',
+  separator: '#46464F',
+  fill: '#34343A',
+  glassStroke: '#46464F',
+  red: '#FFB4AB',
+};
+
+export const MD_LIGHT: TrioColors = {
+  ...TRIO_LIGHT,
+  bgTop: '#FBF8FF',
+  bgBottom: '#FBF8FF',
+  chart: '#EFEDF4',
+  tabBar: '#4F5B92',
+  accent: '#4F5B92',
+  onAccent: '#FFFFFF',
+  primary: '#1B1B21',
+  secondary: '#46464F',
+  tertiary: '#767680',
+  separator: '#C6C5D0',
+  fill: '#E4E1E9',
+  glassStroke: '#C6C5D0',
+  red: '#BA1A1A',
+};
+
+const ANDROID = Platform.OS === 'android';
+
 export function useTrioColors(): TrioColors {
   const system = useColorScheme();
   const pref = useSettings((s) => s.appearance);
   const mode = pref === 'system' ? system : pref;
+  if (ANDROID) return mode === 'light' ? MD_LIGHT : MD_DARK;
   return mode === 'light' ? TRIO_LIGHT : TRIO_DARK;
 }
 

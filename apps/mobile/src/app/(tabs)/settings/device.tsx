@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Section, T, TrioScreen, useTrioColors } from '@/trio';
 import { catalogFor, isSupported, modelsLine, type DeviceKind } from '@/features/devices/catalog';

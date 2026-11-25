@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { Row, SheetScreen, T, useTrioColors } from '@/trio';

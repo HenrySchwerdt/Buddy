@@ -33,6 +33,9 @@ interface Props {
   readonly label: string;
 }
 
+/** Baseline of the topmost y label, so an 11 pt label at the top grid line is not clipped. */
+const LABEL_TOP = 11;
+
 /** 24-hour step chart of a therapy schedule (Trio's `TherapyProfileChart`). */
 export function TherapyChart({ items, color, display = (v) => v, fill = true, lineWidth = 1, yDomain, label }: Props) {
   const [width, setWidth] = useState(0);
@@ -68,7 +71,7 @@ export function TherapyChart({ items, color, display = (v) => v, fill = true, li
           {fill ? segments.map((s, i) => <Rect key={i} x={s.x0} y={s.y} width={Math.max(0, s.x1 - s.x0)} height={Math.max(0, plotH - s.y)} fill={`url(#${gid})`} />) : null}
           <Path d={line} stroke={color} strokeWidth={lineWidth} fill="none" />
           {visibleTicks.map((t) => (
-            <SvgText key={`l${t}`} x={plotW + 6} y={y(t) + 4} fontSize={11} fill={OB.secondary}>
+            <SvgText key={`l${t}`} x={plotW + 6} y={Math.max(LABEL_TOP, y(t) + 4)} fontSize={11} fill={OB.secondary}>
               {String(t)}
             </SvgText>
           ))}

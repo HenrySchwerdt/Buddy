@@ -36,7 +36,8 @@ export default function TreatmentSheet() {
   useEffect(() => {
     const id = setTimeout(() => {
       const simulated = carbs > 0 || amount > 0 || backdated ? simulateDecision({ carbs, carbsDate: draft.date, bolus: amount }) : null;
-      set({ simulated });
+      const simulatedForCalc = amount === 0 ? simulated : carbs > 0 || backdated ? simulateDecision({ carbs, carbsDate: draft.date, bolus: 0 }) : null;
+      set({ simulated, simulatedForCalc });
     }, SIMULATION_DEBOUNCE_MS);
     return () => clearTimeout(id);
   }, [carbs, amount, backdated, draft.date, set]);
@@ -44,7 +45,7 @@ export default function TreatmentSheet() {
   const ts = m.settings;
   const buttonState = { amount: m.amount, carbs: m.carbs, fat: m.fat, protein: m.protein, externalInsulin: draft.externalInsulin, maxBolus: m.maxBolus, maxCarbs: ts.maxCarbs, maxFat: ts.maxFat, maxProtein: ts.maxProtein };
   const limitExceeded = limitExceededLabel(buttonState) !== null;
-  const warning = bolusWarning({ externalInsulin: draft.externalInsulin, amount: m.amount, currentBG: m.input.currentBG, minPredBG: m.input.minPredBG, confirmBolus: ts.confirmBolus });
+  const warning = bolusWarning({ externalInsulin: draft.externalInsulin, amount: m.amount, currentBG: m.input.currentBG, minPredBG: m.forecastMinPredBG, confirmBolus: ts.confirmBolus });
   const recommendation = m.result.insulinCalculated;
 
   const run = async () => {

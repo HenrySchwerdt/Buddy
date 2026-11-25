@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { StyleSheet, View } from 'react-native';
 import type { PumpState } from '@buddy/core';
 import { T, useTrioColors } from '@/trio';

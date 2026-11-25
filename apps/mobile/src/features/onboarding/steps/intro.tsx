@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
@@ -55,7 +55,7 @@ export function WelcomeStep() {
         <OT style_="title2" weight="700" accessibilityRole="header">
           Hi there!
         </OT>
-        <OT secondary>Welcome to Buddy — an automated insulin delivery system for iOS based on the OpenAPS algorithm with adaptations.</OT>
+        <OT secondary>Welcome to Buddy — an automated insulin delivery system for iOS and Android based on the OpenAPS algorithm with adaptations.</OT>
         <OT secondary>Buddy is designed to help manage your diabetes efficiently. To get the most out of the app, we'll guide you through setting up some essential parameters.</OT>
         <OT weight="700">Let's go through a few quick steps to ensure Buddy works optimally for you.</OT>
       </Stack>

@@ -1,5 +1,5 @@
 import { Image, StyleSheet } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { Row, Section, T, useTrioColors } from '@/trio';
 import { SettingsScreen } from '@/features/settings/components/settings-screen';
 

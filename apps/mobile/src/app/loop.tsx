@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SymbolView } from '@/trio/symbol';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { MINUTE } from '@buddy/core';
 import { fmtTime } from '@/features/format';
 import { useSnapshot } from '@/runtime/hooks';
@@ -32,9 +32,9 @@ export default function LoopStatusSheet() {
   const reason = lastOk?.suggested?.reason;
 
   return (
-    <View style={{ flex: 1 }}>
+    <View>
       <TrioBackground />
-      <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.container}>
         <View style={styles.titleRow}>
           <T weight="700" style={{ fontSize: 19, flex: 1 }}>
             Current Loop Status
@@ -79,7 +79,7 @@ export default function LoopStatusSheet() {
             Got it!
           </T>
         </Pressable>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -89,5 +89,5 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center' },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   modeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  got: { marginTop: 32, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
+  got: { marginTop: 32, marginBottom: 24, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
 });

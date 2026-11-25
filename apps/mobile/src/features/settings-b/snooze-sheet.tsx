@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { Modal, Pressable, View } from 'react-native';
 import { now } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';

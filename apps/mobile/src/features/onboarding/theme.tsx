@@ -1,22 +1,28 @@
 import type { ComponentProps } from 'react';
-import { T, TRIO_DARK } from '@/trio';
+import { Platform } from 'react-native';
+import { MD_DARK, T, TRIO_DARK } from '@/trio';
 import type { Accent } from './model';
 
 /**
  * Trio forces `.preferredColorScheme(.dark)` for the whole onboarding, so these screens use the
  * dark palette regardless of the app appearance setting.
  */
+const ANDROID = Platform.OS === 'android';
+// Android: the same dark onboarding on Material 3 surfaces (flat background, container cards,
+// primary instead of system blue).
+const BASE = ANDROID ? MD_DARK : TRIO_DARK;
+
 export const OB = {
-  ...TRIO_DARK,
+  ...BASE,
   /** `Color.chart.opacity(0.65)` */
-  card: 'rgba(33,33,46,0.65)',
+  card: ANDROID ? MD_DARK.chart : 'rgba(33,33,46,0.65)',
   /** `Color.gray.opacity(0.3)` — empty progress segment */
-  track: 'rgba(142,142,147,0.3)',
+  track: ANDROID ? MD_DARK.fill : 'rgba(142,142,147,0.3)',
   /** `Color(.systemGray)` — disabled Next */
-  systemGray: '#8E8E93',
-  blue: '#0A84FF',
+  systemGray: ANDROID ? MD_DARK.fill : '#8E8E93',
+  blue: ANDROID ? MD_DARK.accent : '#0A84FF',
   cyan: '#64D2FF',
-  textSecondary: TRIO_DARK.secondary,
+  textSecondary: BASE.secondary,
 } as const;
 
 export const ACCENT: Record<Accent, string> = { blue: OB.blue, green: OB.green, purple: OB.purple, orange: OB.orange, cyan: OB.cyan };

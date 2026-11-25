@@ -1,6 +1,6 @@
 import type { AlertKind } from '@buddy/core';
 import { router } from 'expo-router';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { DEVICE_ALARMS, isEnabled } from '@/features/settings-b/alarm-catalog';

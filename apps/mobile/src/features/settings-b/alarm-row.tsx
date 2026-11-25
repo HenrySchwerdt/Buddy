@@ -1,5 +1,5 @@
 import type { AlertSettings, GlucoseUnit } from '@buddy/core';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { View } from 'react-native';
 import { Row, T, useTrioColors } from '@/trio';
 import { activeWindow, alarmSummary, overridesFocus, type AlarmMeta } from './alarm-catalog';

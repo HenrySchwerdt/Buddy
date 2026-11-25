@@ -23,6 +23,11 @@ export interface TreatmentDraft {
   readonly useSuperBolus: boolean;
   /** Algorithm run with the entered carbs/bolus (Trio's `simulatedDetermination`). */
   readonly simulated: AlgorithmDecision | null;
+  /**
+   * Same run without the entered bolus. Trio only recalculates the recommendation when carbs or time
+   * change, never when the bolus amount changes, so the calculator reads its min predicted BG from here.
+   */
+  readonly simulatedForCalc: AlgorithmDecision | null;
 }
 
 interface Actions {
@@ -45,6 +50,7 @@ const blank = (now: number): TreatmentDraft => ({
   useFattyMealCorrectionFactor: false,
   useSuperBolus: false,
   simulated: null,
+  simulatedForCalc: null,
 });
 
 const toText = (n: number) => (n > 0 ? String(Math.round(n)) : '');

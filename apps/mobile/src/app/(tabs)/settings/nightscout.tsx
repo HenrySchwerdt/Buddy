@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { backfillGlucose, errorMessage, importProfileFromNightscout } from '@/features/settings-b/nightscout';

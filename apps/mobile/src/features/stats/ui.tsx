@@ -1,7 +1,8 @@
+import { chooseValue } from '@/trio/choice-dialog';
 import * as Haptics from 'expo-haptics';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import type { PropsWithChildren, ReactNode } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { T, useTrioColors } from '@/trio';
 import { SYS } from './format';
 
@@ -17,13 +18,7 @@ export function ChartTypeRow<V extends string>({ value, options, onChange, title
   const current = options.find((o) => o.value === value)?.label ?? value;
   const open = () => {
     void Haptics.selectionAsync();
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ title, options: [...options.map((o) => o.label), 'Cancel'], cancelButtonIndex: options.length }, (i) => {
-        if (i < options.length) onChange(options[i]!.value);
-      });
-    } else {
-      Alert.alert(title, undefined, [...options.map((o) => ({ text: o.label, onPress: () => onChange(o.value) })), { text: 'Cancel', style: 'cancel' as const }]);
-    }
+    chooseValue(title, options, value, onChange);
   };
   return (
     <View style={styles.typeRow}>

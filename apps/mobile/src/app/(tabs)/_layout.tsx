@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
-import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { SymbolView } from '@/trio/symbol';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useTrioColors } from '@/trio';
 
 /**
@@ -52,6 +52,7 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  overlay: { position: 'absolute', left: 0, right: 0, bottom: 52 - 27, alignItems: 'center' },
+  // Centre the button on the tab icons: iOS tab bar icons sit 52 pt up, Android's Material bar 66 dp.
+  overlay: { position: 'absolute', left: 0, right: 0, bottom: (Platform.OS === 'android' ? 66 : 52) - 27, alignItems: 'center' },
   treat: { paddingHorizontal: 24, paddingVertical: 2 },
 });

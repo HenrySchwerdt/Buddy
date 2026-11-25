@@ -38,6 +38,9 @@ function ticks(min: number, max: number, desired = 4): number[] {
 }
 
 /** Port of Trio's TherapyProfileChart: 24 h step chart with dashed grid. */
+/** Baseline of the topmost y label, so a 12 pt label at the top grid line is not clipped. */
+const LABEL_TOP = 12;
+
 export function TherapyChart({ entries, color, fillsArea = true, lineWidth = 1, yDomain, formatY = String, accessibilityLabel }: Props) {
   const c = useTrioColors();
   const [width, setWidth] = useState(0);
@@ -79,7 +82,7 @@ export function TherapyChart({ entries, color, fillsArea = true, lineWidth = 1, 
             </SvgText>
           ))}
           {yTicks.map((t) => (
-            <SvgText key={`ly${t}`} x={plotW + 6} y={y(t) + 4} fill={c.secondary} fontSize={12}>
+            <SvgText key={`ly${t}`} x={plotW + 6} y={Math.max(LABEL_TOP, y(t) + 4)} fill={c.secondary} fontSize={12}>
               {formatY(t)}
             </SvgText>
           ))}

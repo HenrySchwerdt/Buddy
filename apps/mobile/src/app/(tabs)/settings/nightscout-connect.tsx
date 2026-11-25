@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, StyleSheet, TextInput, View } from 'react-native';
 import { checkConnection, errorMessage, loadToken, normalizeNightscoutUrl, saveToken } from '@/features/settings-b/nightscout';

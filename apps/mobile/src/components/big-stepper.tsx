@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from './text';
 

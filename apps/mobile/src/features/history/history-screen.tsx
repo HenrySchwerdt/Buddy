@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { CarbEntry } from '@buddy/core';
 import { useSnapshot } from '@/runtime/hooks';
 import { useRuntime } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';
-import { GlassPanel, Segmented, T, TrioScreen, useTrioColors } from '@/trio';
+import { CapsuleButton, Segmented, TrioScreen } from '@/trio';
 import { useHistoryMode } from './actions';
 import { recentAdjustments, startAdjustmentLog, useAdjustmentLog } from './adjustment-log';
 import { CarbEntryEditor } from './carb-entry-editor';
@@ -14,23 +14,6 @@ import { AdjustmentsList, GlucoseList, MealsList, TreatmentsList } from './histo
 import { HISTORY_MODES, TREATMENT_TYPES, glucoseRows, mealRows, treatmentRows, type TreatmentType } from './rows';
 
 startAdjustmentLog();
-
-/** Toolbar capsule with Trio's label order ("[icon] Statistics", "Add Glucose [+]"). */
-function ToolbarButton({ label, icon, iconFirst, onPress }: { label: string; icon: SFSymbol; iconFirst?: boolean; onPress: () => void }) {
-  const c = useTrioColors();
-  const glyph = <SymbolView name={icon} size={24} tintColor={c.tabBar} weight="medium" />;
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={6} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-      <GlassPanel radius={999} interactive style={styles.capsule}>
-        {iconFirst ? glyph : null}
-        <T color={c.tabBar} style={{ fontSize: 17 }}>
-          {label}
-        </T>
-        {iconFirst ? null : glyph}
-      </GlassPanel>
-    </Pressable>
-  );
-}
 
 /** Port of Trio's History.RootView. */
 export function HistoryScreen() {
@@ -54,8 +37,8 @@ export function HistoryScreen() {
   return (
     <TrioScreen
       title="History"
-      leading={<ToolbarButton label="Statistics" icon="chart.bar.xaxis" iconFirst onPress={() => router.push('/statistics')} />}
-      trailing={<ToolbarButton label="Add Glucose" icon="plus" onPress={() => router.push('/add-glucose')} />}>
+      leading={<CapsuleButton label="Statistics" icon="chart.bar.xaxis" iconFirst onPress={() => router.push('/statistics')} />}
+      trailing={<CapsuleButton label="Add Glucose" icon="plus" onPress={() => router.push('/add-glucose')} />}>
       <Segmented options={HISTORY_MODES} value={mode} onChange={setMode} />
       <View style={styles.list}>
         {mode === 'treatments' ? <TreatmentsList rows={treatments} filter={filter} onFilterChange={setFilter} /> : null}

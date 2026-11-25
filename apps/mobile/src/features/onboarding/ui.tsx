@@ -1,7 +1,8 @@
+import { chooseValue } from '@/trio/choice-dialog';
 import * as Haptics from 'expo-haptics';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useState, type PropsWithChildren } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Block, TextBlock } from './texts';
 import { OB, OT } from './theme';
 import { WheelPicker } from './wheel';
@@ -104,13 +105,7 @@ export function MenuPickerCard<V extends string | number>({ label, value, option
   const current = options.find((o) => o.value === value)?.label ?? String(value);
   const open = () => {
     void Haptics.selectionAsync();
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ title: label, options: [...options.map((o) => o.label), 'Cancel'], cancelButtonIndex: options.length, userInterfaceStyle: 'dark' }, (i) => {
-        if (i < options.length) onChange(options[i]!.value);
-      });
-    } else {
-      Alert.alert(label, undefined, [...options.map((o) => ({ text: o.label, onPress: () => onChange(o.value) })), { text: 'Cancel', style: 'cancel' as const }]);
-    }
+    chooseValue(label, options, value, onChange);
   };
   return (
     <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`${label}, ${current}`} style={({ pressed }) => [styles.card, styles.rowCard, pressed && { opacity: 0.7 }]}>

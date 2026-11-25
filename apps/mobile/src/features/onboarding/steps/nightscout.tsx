@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { connectToNightscout, prefillNightscout } from '../nightscout';
@@ -91,8 +91,8 @@ function ConnectButton({ disabled, connecting }: { disabled: boolean; connecting
         void connectToNightscout();
       }}
       style={({ pressed }) => [styles.connect, { backgroundColor: disabled ? OB.fill : OB.blue, opacity: pressed ? 0.8 : 1 }]}>
-      {connecting ? <ActivityIndicator color="#FFFFFF" style={{ marginRight: 10 }} /> : null}
-      <OT weight="700" color={disabled ? OB.secondary : '#FFFFFF'}>
+      {connecting ? <ActivityIndicator color={OB.onAccent} style={{ marginRight: 10 }} /> : null}
+      <OT weight="700" color={disabled ? OB.secondary : OB.onAccent}>
         {connecting ? 'Connecting...' : 'Connect to Nightscout'}
       </OT>
     </Pressable>

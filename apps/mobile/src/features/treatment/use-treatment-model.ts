@@ -21,6 +21,8 @@ export interface TreatmentModel {
   readonly amount: number;
   readonly backdated: boolean;
   readonly input: CalculationInput;
+  /** Min predicted BG of the forecast including the entered bolus (drives the low-forecast warning). */
+  readonly forecastMinPredBG: number;
   readonly result: CalculationResult;
   /** COB shown in the details sheet (simulated when backdated). */
   readonly displayedCob: number;
@@ -90,7 +92,10 @@ export function useTreatmentModel(): TreatmentModel {
     const simulatedCob = backdated && carbs > 0 ? Math.min(ts.maxCOB, Math.trunc(carbsOnBoard([...snap.carbs, { id: 'sim', date: draft.date, grams: carbs }], now))) : liveCob;
     const displayedCob = backdated ? simulatedCob : liveCob;
 
-    const minPred = minPredicted(draft.simulated, currentBG) ?? minPredicted(determination?.suggested, currentBG) ?? 0;
+    const latestMinPred = minPredicted(determination?.suggested, currentBG);
+    // Recommendation: forecast without the entered bolus (Trio). Warning: forecast including it.
+    const minPred = minPredicted(draft.simulatedForCalc, currentBG) ?? latestMinPred ?? 0;
+    const forecastMinPred = minPredicted(draft.simulated, currentBG) ?? latestMinPred ?? 0;
 
     const input: CalculationInput = {
       carbs: backdated ? 0 : carbs,
@@ -126,6 +131,7 @@ export function useTreatmentModel(): TreatmentModel {
       fat,
       protein,
       amount,
+      forecastMinPredBG: forecastMinPred,
       backdated,
       input,
       result,

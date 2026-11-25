@@ -1,4 +1,4 @@
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '@/theme/use-theme';
 import { LoopRing } from './loop-ring';

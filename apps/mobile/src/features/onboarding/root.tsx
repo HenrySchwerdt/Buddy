@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { SymbolView, type SFSymbol } from 'expo-symbols';
+import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Alert, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 import Animated, { FadeIn, SlideInLeft, SlideInRight } from 'react-native-reanimated';
@@ -34,6 +34,7 @@ import { AlgorithmContentsStep, AlgorithmImportantNotesStep, AlgorithmSubstepSte
 import { NightscoutImportStep, NightscoutLoginStep, NightscoutSetupStep, NightscoutUploadGlucoseStep, NightscoutUploadStep } from './steps/nightscout';
 import { BluetoothPermissionStep, NotificationPermissionStep } from './steps/permissions';
 import { BasalProfileStep, CarbRatioStep, GlucoseTargetStep, InsulinSensitivityStep, UnitSelectionStep } from './steps/therapy';
+import { SYSTEM_SETTINGS } from '@/features/platform-copy';
 
 const CAPSULE = 15 * 1.3;
 
@@ -176,7 +177,7 @@ async function runNext(nav: NavState, ctx: NavContext, go: (n: NavState) => void
     if ((await requestNotifications()) === 'granted') return advance();
     Alert.alert(
       'Notifications for “Buddy” are Disabled',
-      'After completing onboarding, you can enable notifications for Buddy in the iOS Settings app.',
+      `After completing onboarding, you can enable notifications for Buddy in the ${SYSTEM_SETTINGS} app.`,
       [
         { text: 'Cancel', style: 'cancel', onPress: advance },
         { text: 'Got it!', onPress: advance },
@@ -258,8 +259,8 @@ export function OnboardingRoot() {
             accessibilityRole="button"
             accessibilityState={{ disabled }}
             style={({ pressed }) => [styles.next, { backgroundColor: disabled ? OB.systemGray : OB.blue, opacity: pressed ? 0.8 : 1 }]}>
-            <OT color="#FFFFFF">{nav.step === 'completed' && !nav.chapterCompletion ? 'Get Started' : 'Next'}</OT>
-            <SymbolView name="chevron.right" size={17} tintColor="#FFFFFF" weight="medium" />
+            <OT color={disabled ? OB.secondary : OB.onAccent}>{nav.step === 'completed' && !nav.chapterCompletion ? 'Get Started' : 'Next'}</OT>
+            <SymbolView name="chevron.right" size={17} tintColor={disabled ? OB.secondary : OB.onAccent} weight="medium" />
           </Pressable>
         </View>
       </View>

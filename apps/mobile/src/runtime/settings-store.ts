@@ -59,6 +59,8 @@ interface Actions {
   reset(): void;
 }
 
+const IS_DEV = typeof __DEV__ !== 'undefined' && __DEV__;
+
 export const DEFAULT_SETTINGS: AppSettings = {
   onboarded: false,
   appearance: 'system',
@@ -66,8 +68,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   loopMode: 'open',
   algorithmId: 'oref-smb',
   algorithmSettings: {},
-  pumpId: 'demo-pump',
-  cgmId: 'demo-cgm',
+  // Demo devices are registered in dev builds only; release builds start without devices.
+  pumpId: IS_DEV ? 'demo-pump' : '',
+  cgmId: IS_DEV ? 'demo-cgm' : '',
   deviceSettings: {},
   profile: DEFAULT_PROFILE,
   limits: DEFAULT_LIMITS,

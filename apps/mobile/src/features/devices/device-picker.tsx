@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { View } from 'react-native';
 import { CapsuleButton, Row, Section, SheetScreen, T, useTrioColors } from '@/trio';
 import { catalogFor, catalogSections, isSupported, modelsLine, NOT_SUPPORTED, type CatalogEntry, type DeviceKind } from './catalog';

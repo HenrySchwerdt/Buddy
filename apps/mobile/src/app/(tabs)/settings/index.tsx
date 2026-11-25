@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useState } from 'react';
 import { Alert, Image, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import type { LoopMode } from '@buddy/core';

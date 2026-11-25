@@ -2,7 +2,7 @@ import { Host, Picker, Text as SwiftText } from '@expo/ui/swift-ui';
 import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { OB, OT } from './theme';
 
 const ROW = 34;
@@ -41,10 +41,10 @@ function NativeWheel({ options, value, format, onChange, disabled, label }: Prop
 }
 
 function ListWheel({ options, value, format, onChange, disabled, label }: Props) {
-  const list = useRef<FlatList<number>>(null);
+  const list = useRef<ScrollViewInstance>(null);
   const index = Math.max(0, options.indexOf(value));
   useEffect(() => {
-    list.current?.scrollToOffset({ offset: index * ROW, animated: false });
+    list.current?.scrollTo({ y: index * ROW, animated: false });
   }, [index]);
   const settle = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.min(options.length - 1, Math.max(0, Math.round(e.nativeEvent.contentOffset.y / ROW)));
@@ -57,25 +57,23 @@ function ListWheel({ options, value, format, onChange, disabled, label }: Props)
   return (
     <View style={{ height: ROW * VISIBLE, opacity: disabled ? 0.5 : 1 }} pointerEvents={disabled ? 'none' : 'auto'} accessibilityLabel={label}>
       <View style={[styles.band, { top: pad, backgroundColor: OB.fill }]} />
-      <FlatList
+      <ScrollView
         ref={list}
-        data={options as number[]}
-        keyExtractor={(o) => String(o)}
-        getItemLayout={(_, i) => ({ length: ROW, offset: ROW * i, index: i })}
-        initialScrollIndex={index}
+        contentOffset={{ x: 0, y: index * ROW }}
         snapToInterval={ROW}
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
         contentContainerStyle={{ paddingVertical: pad }}
-        onMomentumScrollEnd={settle}
-        renderItem={({ item, index: i }) => (
-          <Pressable style={styles.row} onPress={() => list.current?.scrollToOffset({ offset: i * ROW, animated: true })}>
+        onMomentumScrollEnd={settle}>
+        {options.map((item, i) => (
+          <Pressable key={String(item)} style={styles.row} onPress={() => list.current?.scrollTo({ y: i * ROW, animated: true })}>
             <OT style={{ fontSize: 20 }} secondary={item !== value}>
               {format(item)}
             </OT>
           </Pressable>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }

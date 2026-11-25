@@ -1,7 +1,8 @@
+import { choose } from '@/trio/choice-dialog';
 import * as Haptics from 'expo-haptics';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { Fragment, type ReactNode } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { T, useTrioColors } from '@/trio';
 
@@ -9,15 +10,9 @@ const ACTION_WIDTH = 74;
 
 /** Native action sheet (Trio's `.glassActionSheet` / `.contextMenu`). Last button is Cancel. */
 export function actionSheet(opts: { title?: string; message?: string; actions: readonly { label: string; destructive?: boolean; onPress: () => void }[] }) {
-  const labels = [...opts.actions.map((a) => a.label), 'Cancel'];
-  if (Platform.OS === 'ios') {
-    const destructiveButtonIndex = opts.actions.map((a, i) => (a.destructive ? i : -1)).filter((i) => i >= 0);
-    ActionSheetIOS.showActionSheetWithOptions({ title: opts.title, message: opts.message, options: labels, cancelButtonIndex: opts.actions.length, destructiveButtonIndex }, (i) => {
-      if (i < opts.actions.length) opts.actions[i]!.onPress();
-    });
-    return;
-  }
-  Alert.alert(opts.title ?? '', opts.message, [...opts.actions.map((a) => ({ text: a.label, style: a.destructive ? ('destructive' as const) : ('default' as const), onPress: a.onPress })), { text: 'Cancel', style: 'cancel' as const }]);
+  void choose({ title: opts.title, message: opts.message, items: opts.actions }).then((i) => {
+    if (i !== null) opts.actions[i]!.onPress();
+  });
 }
 
 /** List row with Trio's trailing swipe actions: Delete (red) and Edit (blue). */

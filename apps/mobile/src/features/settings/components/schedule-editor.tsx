@@ -1,11 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CapsuleButton, T, TAB_BAR_SPACE, TrioBackground, useTrioColors } from '@/trio';
+import { CapsuleButton, PrimaryButton, T, TAB_BAR_SPACE, TrioBackground, useTrioColors } from '@/trio';
+
+const ANDROID = Platform.OS === 'android';
 import { closestIndex } from '../picker';
 import { TherapyChart } from './therapy-chart';
 import { WheelPicker } from './wheel-picker';
@@ -88,14 +90,21 @@ export function ScheduleEditor({ title, initial, valueOptions, formatValue, unit
     <View style={{ flex: 1 }}>
       <TrioBackground />
       <View style={{ paddingTop: insets.top }}>
-        <View style={styles.toolbar}>
+        <View style={[styles.toolbar, ANDROID && styles.mdAppBar]}>
           <CapsuleButton icon="chevron.left" onPress={() => router.back()} accessibilityLabel="Back" />
+          {ANDROID ? (
+            <T style={styles.mdTitle} numberOfLines={1} accessibilityRole="header">
+              {title}
+            </T>
+          ) : null}
         </View>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
-        <T style_="largeTitle" style={{ marginLeft: 4, marginBottom: 8 }} accessibilityRole="header">
-          {title}
-        </T>
+        {ANDROID ? null : (
+          <T style_="largeTitle" style={{ marginLeft: 4, marginBottom: 8 }} accessibilityRole="header">
+            {title}
+          </T>
+        )}
         {header}
         {items.length > 0 ? (
           <View style={[styles.chart, { backgroundColor: c.chart }]}>
@@ -134,15 +143,21 @@ export function ScheduleEditor({ title, initial, valueOptions, formatValue, unit
           </T>
         </View>
       </ScrollView>
-      <View style={[styles.saveBar, { backgroundColor: c.dark ? 'rgba(3,15,28,0.8)' : 'rgba(255,255,255,0.8)', paddingBottom: insets.bottom + TAB_BAR_SPACE - 40 }]}>
-        <Pressable
-          onPress={save}
-          disabled={!hasChanges || items.length === 0}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.saveButton, { backgroundColor: hasChanges ? c.accent : c.dark ? '#3A3A3C' : '#D1D1D6', opacity: pressed ? 0.8 : 1 }]}>
-          <T color={hasChanges ? '#FFFFFF' : c.secondary}>Save</T>
-        </Pressable>
-      </View>
+      {ANDROID ? (
+        <View style={[styles.saveBar, { backgroundColor: c.bgBottom, paddingBottom: 16 }]}>
+          <PrimaryButton label="Save" onPress={save} disabled={!hasChanges || items.length === 0} style={{ alignSelf: 'stretch' }} />
+        </View>
+      ) : (
+        <View style={[styles.saveBar, { backgroundColor: c.dark ? 'rgba(3,15,28,0.8)' : 'rgba(255,255,255,0.8)', paddingBottom: insets.bottom + TAB_BAR_SPACE - 40 }]}>
+          <Pressable
+            onPress={save}
+            disabled={!hasChanges || items.length === 0}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.saveButton, { backgroundColor: hasChanges ? c.accent : c.dark ? '#3A3A3C' : '#D1D1D6', opacity: pressed ? 0.8 : 1 }]}>
+            <T color={hasChanges ? '#FFFFFF' : c.secondary}>Save</T>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -234,6 +249,8 @@ function EntryRow({ item, first, selected, canDelete, takenMinutes, valueOptions
 }
 
 const styles = StyleSheet.create({
+  mdAppBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', height: 64, paddingHorizontal: 8, gap: 4 },
+  mdTitle: { flex: 1, fontSize: 22, fontWeight: '500', paddingHorizontal: 8 },
   toolbar: { paddingHorizontal: 16, height: 56, justifyContent: 'center' },
   chart: { padding: 16, borderTopLeftRadius: 10, borderTopRightRadius: 10, marginTop: 16 },
   roundTop: { borderTopLeftRadius: 10, borderTopRightRadius: 10, marginTop: 16 },

@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { View } from 'react-native';
 import { useTrioColors } from '@/trio';
 import type { CatalogEntry, DeviceImage } from './catalog';

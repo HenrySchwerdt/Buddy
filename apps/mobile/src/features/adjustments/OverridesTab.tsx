@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import type { OverridePreset } from '@buddy/core';
 import { useSettings } from '@/runtime/settings-store';
 import { Section, T, useTrioColors } from '@/trio';

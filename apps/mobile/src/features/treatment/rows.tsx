@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Host, DatePicker } from '@expo/ui/swift-ui';
+import { DateTimeCapsules } from '@/trio/android-pickers';
 import { controlSize, labelsHidden } from '@expo/ui/swift-ui/modifiers';
 import { Row, T, useTrioColors } from '@/trio';
 import { bolusAmountFormatter } from './formatting';
@@ -70,7 +71,7 @@ export function TimeRow({ date, pushed, onPush, onChange }: { date: number; push
               <DatePicker selection={new Date(date)} displayedComponents={['hourAndMinute']} onDateChange={(d) => onChange(d.getTime())} modifiers={[labelsHidden(), controlSize('mini')]} />
             </Host>
           ) : (
-            <T>{new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</T>
+            <DateTimeCapsules value={date} onChange={onChange} date={false} />
           )}
           <Pressable onPress={() => onChange(date + FIFTEEN_MIN)} accessibilityRole="button" accessibilityLabel="15 minutes later" hitSlop={6}>
             <SymbolView name="plus.circle" size={22} tintColor={SYSTEM_BLUE} />

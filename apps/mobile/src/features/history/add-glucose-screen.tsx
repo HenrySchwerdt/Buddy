@@ -21,7 +21,7 @@ export function AddGlucoseScreen() {
   };
 
   return (
-    <SheetScreen title="Add Glucose" leading={<CapsuleButton label="Close" color={c.tabBar} onPress={() => router.back()} />}>
+    <SheetScreen fitContent title="Add Glucose" leading={<CapsuleButton label="Close" color={c.tabBar} onPress={() => router.back()} />}>
       <Section>
         <InputRow label="New Glucose" value={text} onChangeText={onChange} placeholder=" ... " unit={units} keyboardType={units === 'mg/dL' ? 'number-pad' : 'decimal-pad'} />
       </Section>
@@ -36,7 +36,7 @@ export function AddGlucoseScreen() {
           router.back();
         }}
         style={({ pressed }) => [styles.save, { backgroundColor: disabled ? (c.dark ? '#3A3A3C' : '#D1D1D6') : c.accent, opacity: pressed ? 0.85 : 1 }]}>
-        <T color="#FFFFFF">Save</T>
+        <T color={disabled ? c.secondary : c.onAccent}>Save</T>
       </Pressable>
     </SheetScreen>
   );

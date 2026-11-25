@@ -3,6 +3,7 @@ import { pickerStyle, tag } from '@expo/ui/swift-ui/modifiers';
 import { useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Row, Section, T, useTrioColors } from '@/trio';
+import { ListWheel } from '@/trio/android-pickers';
 
 /**
  * AlarmBGSection / AlarmGramsSection: a value row that opens an inline wheel picker on tap.
@@ -46,21 +47,7 @@ export function ValueWheelSection({
 function Wheel({ title, value, values, format, onChange }: { title: string; value: number; values: readonly number[]; format: (v: number) => string; onChange: (v: number) => void }) {
   const c = useTrioColors();
   if (Platform.OS !== 'ios') {
-    // Fallback outside iOS: step buttons over the same value list.
-    const i = Math.max(0, values.indexOf(value));
-    return (
-      <Row>
-        <T color={c.tabBar} onPress={() => onChange(values[Math.max(0, i - 1)]!)} accessibilityRole="button">
-          −
-        </T>
-        <T style={{ flex: 1 }} align="center">
-          {format(value)}
-        </T>
-        <T color={c.tabBar} onPress={() => onChange(values[Math.min(values.length - 1, i + 1)]!)} accessibilityRole="button">
-          +
-        </T>
-      </Row>
-    );
+    return <ListWheel label={title} value={value} options={values.map((v) => ({ value: v, label: format(v) }))} onChange={onChange} />;
   }
   return (
     <Host style={{ height: 216 }}>

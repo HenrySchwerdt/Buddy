@@ -1,4 +1,4 @@
-import { SymbolView } from 'expo-symbols';
+import { SymbolView } from '@/trio/symbol';
 import type { PropsWithChildren } from 'react';
 import { View } from 'react-native';
 import { Row, T, useTrioColors } from '@/trio';

@@ -1,0 +1,19 @@
+diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
+index de76b9762d8f3cdd05a68fca7a01e8f1b0af973f..f58f7617644365ad77422d1ce6e046fbd04aa861 100644
+--- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
++++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
+@@ -941,9 +941,13 @@ private func withEncodedValue(
+     }
+     // The runtime can't be deallocated during a call on its JavaScript thread, so it's borrowed without
+     // a retain.
++    // Buddy patch: pass the pointer as a Sendable bit pattern so Xcode 26.3's region-based
++    // isolation checker accepts the synchronous hop onto JavaScriptActor.
++    let slotBits = UInt(bitPattern: slot)
+     try runtime._withUnsafeGuaranteedRef { runtime in
+       try JavaScriptActor.assumeIsolated {
+-        try encode(JavaScriptValue.Slot(slot), runtime)
++        let isolatedSlot = UnsafeMutablePointer<facebook.jsi.Value>(bitPattern: slotBits)!
++        try encode(JavaScriptValue.Slot(isolatedSlot), runtime)
+       }
+     }
+     body(slot.pointee)

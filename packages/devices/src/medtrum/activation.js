@@ -1,0 +1,12 @@
+import { MedtrumNanoDriver } from './driver';
+export const isMedtrumNanoDriver = (d) => d instanceof MedtrumNanoDriver;
+export const readMedtrumPatchStatus = (d) => d.patchStatus();
+export const refreshMedtrumPatch = (d) => d.refreshPatch();
+export const primeMedtrumPatch = (d) => d.prime();
+export const activateMedtrumPatch = (d, basalSchedule) => d.activate(basalSchedule);
+export const deactivateMedtrumPatch = (d) => d.deactivate();
+export const forceDeactivateMedtrumPatch = (d) => d.forceDeactivate();
+export const setMedtrumBasalSchedule = (d, schedule) => d.setBasalSchedule(schedule);
+export const updateMedtrumPatchSettings = (d) => d.updatePatchSettings();
+export const clearMedtrumAlert = (d, type) => d.clearAlert(type);
+export const syncMedtrumPatchTime = (d) => d.syncPatchTime();

@@ -1,0 +1,27 @@
+import { createRegistry } from '@buddy/core';
+import { demoCgm, demoPump } from './demo/plugins';
+import { dexcomShareCgm } from './dexcom-share';
+import { dexcomG6Cgm } from './dexcom-g6';
+import { dexcomG7Cgm } from './dexcom-g7';
+import { libre2DirectCgm, libreTransmitterCgm } from './libre';
+import { medtrumNanoPump } from './medtrum';
+import { danaPump } from './dana';
+import { nightscoutCgm } from './nightscout';
+import { nightscoutFollower } from './nightscout/follower';
+export { demoCgm, demoPump, dexcomShareCgm, nightscoutCgm, nightscoutFollower, dexcomG6Cgm, dexcomG7Cgm };
+export { createDexcomG6Source, parseGlucoseRx, computeHash } from './dexcom-g6';
+export { danaPump, DanaPumpDriver, DanaPumpSimulator, DANA_META } from './dana';
+export { medtrumNanoPump, createMedtrumNanoDriver, MedtrumNanoDriver, MedtrumPatchSimulator, isMedtrumNanoDriver, readMedtrumPatchStatus, refreshMedtrumPatch, primeMedtrumPatch, activateMedtrumPatch, deactivateMedtrumPatch, forceDeactivateMedtrumPatch, setMedtrumBasalSchedule, updateMedtrumPatchSettings, clearMedtrumAlert, syncMedtrumPatchTime } from './medtrum';
+export { libre2DirectCgm, libreTransmitterCgm, pairSensor, PairingError, LIBRE_SECRET_KEYS } from './libre';
+export { createDexcomG7Source, parseG7GlucoseMessage, parseG7BackfillMessage } from './dexcom-g7';
+export { parseTreatmentsToDoses, parseTreatmentsToCarbs, parseDeviceStatus, parseNightscoutProfile } from './nightscout/follower';
+export * from './testkit';
+export { demoHub, createDemoHub } from './demo/hub';
+export { parseNightscoutEntries, normalizeBaseUrl } from './nightscout';
+export { parseShareReadings, parseShareDate } from './dexcom-share';
+export { trendFromDirection } from './trend';
+/** Pump drivers bundled with Buddy. Real pumps arrive as native-module plugins (docs/ADDING_A_DEVICE.md). */
+export const BUILT_IN_PUMPS = [demoPump, nightscoutFollower, danaPump, medtrumNanoPump];
+export const BUILT_IN_CGMS = [demoCgm, dexcomG7Cgm, dexcomG6Cgm, libre2DirectCgm, libreTransmitterCgm, nightscoutCgm, dexcomShareCgm];
+export const createPumpRegistry = () => createRegistry(BUILT_IN_PUMPS);
+export const createCgmRegistry = () => createRegistry(BUILT_IN_CGMS);

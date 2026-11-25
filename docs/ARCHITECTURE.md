@@ -18,8 +18,15 @@ and in the benchmark CLI.
 2. **`@buddy/algorithms`** — plugins. oref is vendored JavaScript behind an adapter.
 3. **`@buddy/devices`** — pump/CGM plugins.
 4. **`@buddy/simulator`** — virtual patients that implement the *same* device interfaces,
-   so the real LoopEngine is exercised end-to-end in tests and in the Lab.
+   so the real LoopEngine is exercised end-to-end in tests and in the benchmark CLI (`pnpm sim`).
+   There is no Lab screen in the app.
 5. **`apps/mobile`** — UI and runtime wiring (settings → plugins → engine → scheduler).
+   - `src/trio/`: the UI kit. iOS renders Trio dev 1:1; Android takes Material 3 branches
+     (`MD_DARK` / `MD_LIGHT` in `colors.ts`, `symbol-map.ts`, `choice-dialog.tsx`,
+     `android-pickers.tsx`, `.android.tsx` twins). See [UI-PORTING.md](UI-PORTING.md).
+   - `src/runtime/`: `runtime.ts` builds devices and the LoopEngine, `settings-store.ts` holds
+     persisted settings, `closed-loop-gate.ts` decides whether closed loop may run.
+   - `src/features/<area>/`: screens' logic and per-feature stores.
 
 ## The loop cycle
 
@@ -51,9 +58,24 @@ Runs never overlap. Exceptions anywhere produce a failed `LoopRun` and **no dosi
 The guard is covered by `packages/core/test/safety.test.ts`. Limits can only be tightened by
 algorithms, never relaxed.
 
+## Closed-loop gate
+
+`closedLoopBlockReason(pump, cgm, hardwareChecks)` in `apps/mobile/src/runtime/closed-loop-gate.ts`
+is a pure function; `runtime.ts` calls it on every engine config read, so the loop mode is
+forced to `open` while it returns a reason. Checks, in order of severity:
+
+1. no pump or no CGM configured;
+2. read-only pump (`meta.readOnly`, the Nightscout follower): shadow mode never doses;
+3. demo pump with a real CGM, or real pump with a simulated CGM (`maturity: 'simulator'`
+   mixes are refused);
+4. `meta.requiresHardwareCheck` and no completed hardware check for that pump id.
+
+It is separate from the SafetyGuard: the gate decides *whether* the loop may enact at all, the
+guard clamps *what* it enacts. Tests: `apps/mobile/src/runtime/__tests__/closed-loop-gate.test.ts`.
+
 ## Simulator
 
-`packages/simulator` implements the Hovorka (2004) model with Wilinska (2010) parameters,
+`packages/simulator` (run it with `pnpm sim`, CLI only) implements the Hovorka (2004) model with Wilinska (2010) parameters,
 integrated with RK4 at 1-minute steps, a CGM with sensor lag and AR(1) noise, and a virtual
 pump. Each virtual patient's "true" basal/ISF/CR are measured from the model, and scenarios
 can deliberately mis-set the profile (±25 %) or hide meals to test robustness.

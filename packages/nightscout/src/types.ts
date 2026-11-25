@@ -51,6 +51,8 @@ export interface NightscoutTreatmentDoc {
   /** minutes (Loop/AAPS convention; Trio omits it) */
   readonly absorptionTime?: number;
   readonly notes?: string;
+  /** Trio repeats a carb entry's note here. */
+  readonly foodType?: string;
   /** mg/dL */
   readonly targetTop?: number;
   /** mg/dL */

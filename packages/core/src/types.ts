@@ -29,7 +29,18 @@ export type DoseKind = 'bolus' | 'smb' | 'tempBasal' | 'suspend';
 
 /** A delivered (or confirmed-enacted) insulin event. */
 export type InsulinDose =
-  | { readonly kind: 'bolus' | 'smb'; readonly date: Millis; readonly units: number; readonly id: string }
+  | {
+      readonly kind: 'bolus' | 'smb';
+      readonly date: Millis;
+      readonly units: number;
+      readonly id: string;
+      /**
+       * Trio's `BolusStored.isExternal`: insulin the user injected outside the pump (pen, syringe)
+       * and logged by hand. It counts for IOB but was never delivered by the pump, so it must
+       * never be sent to one. Only ever set on `kind: 'bolus'`.
+       */
+      readonly external?: boolean;
+    }
   | {
       readonly kind: 'tempBasal';
       readonly date: Millis;
@@ -46,6 +57,8 @@ export interface CarbEntry {
   readonly grams: number;
   /** Expected absorption time in hours (default 3). */
   readonly absorptionHours?: number;
+  /** Free-text note from the Treatments sheet or Edit Meal (Trio: `CarbsEntry.note`, max 25 characters in the UI). */
+  readonly note?: string;
 }
 
 /** A value that changes over the day; entries sorted by `startMinute` (minutes after local midnight). */

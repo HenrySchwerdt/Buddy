@@ -155,3 +155,22 @@ export function trioGlucoseColor(c: TrioColors, mgdl: number, low = 70, high = 1
   if (mgdl > high) return c.loopYellow;
   return c.loopGreen;
 }
+
+/** Fill of a disabled filled button. iOS keeps Trio's grays; Material uses the surface-variant fill. */
+export function disabledFill(c: TrioColors): string {
+  return ANDROID ? c.fill : c.dark ? '#3A3A3C' : '#D1D1D6';
+}
+
+/**
+ * Text/icon colour on a filled button of `bg`. iOS is always white (Trio); Material picks the
+ * accent's `onAccent` or black/white by luminance so light tonal fills (dark theme) stay readable.
+ */
+export function onFill(c: TrioColors, bg: string): string {
+  if (!ANDROID) return '#FFFFFF';
+  if (bg === c.accent) return c.onAccent;
+  const m = /^#([0-9a-f]{6})$/i.exec(bg);
+  if (!m) return '#FFFFFF';
+  const n = parseInt(m[1], 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.6 ? '#1B1B21' : '#FFFFFF';
+}

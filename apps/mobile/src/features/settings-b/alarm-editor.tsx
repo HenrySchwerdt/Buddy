@@ -1,6 +1,6 @@
 import type { AlertKind } from '@buddy/core';
 import { useState } from 'react';
-import { Modal, Switch, View } from 'react-native';
+import { Modal, Platform, Switch, View } from 'react-native';
 import { useSettings } from '@/runtime/settings-store';
 import { CapsuleButton, PickerRow, Row, Section, SheetScreen, T, ToggleRow, useTrioColors, ValueRow } from '@/trio';
 import { activeWindow, ALARM_META, formatValue, overridesFocus, pickerValues, readValue, REPEAT_OPTIONS, unitLabel, windowLabel, type ValueSpec } from './alarm-catalog';
@@ -94,8 +94,8 @@ function Editor({ kind, variant, onClose }: { kind: AlertKind; variant: 'glucose
         <ValueRow label="Active" value={window} valueColor={c.secondary} />
       </Section>
 
-      <Section header="Audio" footer={overridesFocus(kind) ? 'Critical alerts use the iOS critical alert sound.' : undefined}>
-        <ValueRow label="Sound" value="iOS Default" />
+      <Section header="Audio" footer={overridesFocus(kind) ? (Platform.OS === 'android' ? 'Critical alerts use the Android alarm sound.' : 'Critical alerts use the iOS critical alert sound.') : undefined}>
+        <ValueRow label="Sound" value={Platform.OS === 'android' ? 'Android Default' : 'iOS Default'} />
       </Section>
       <View style={{ height: 8 }} />
     </SheetScreen>

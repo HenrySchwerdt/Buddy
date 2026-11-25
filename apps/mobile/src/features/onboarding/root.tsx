@@ -25,7 +25,7 @@ import {
   type NavContext,
   type NavState,
 } from './model';
-import { pumpModel } from './logic';
+import { pumpModel, scheduleStepIncomplete } from './logic';
 import { importFromNightscout } from './nightscout';
 import { useOnboardingDraft, useOnboardingPrefs } from './store';
 import { ACCENT, OB, OT, alpha } from './theme';
@@ -152,8 +152,10 @@ function StepContent({ nav, ctx }: { nav: NavState; ctx: NavContext }) {
 function useNextDisabled(nav: NavState): boolean {
   const ns = useOnboardingDraft((s) => s.nightscout);
   const acknowledged = useOnboardingDraft((s) => s.acknowledged);
+  const draft = useOnboardingDraft();
   if (nav.chapterCompletion) return false;
   if (nav.step === 'disclaimer') return !acknowledged;
+  if (scheduleStepIncomplete(nav.step, draft)) return true;
   if (nav.step !== 'nightscout') return false;
   const sub = NIGHTSCOUT_SUBSTEPS[nav.nightscout];
   return (sub === 'setupSelection' && ns.setup === null) || (sub === 'connectToNightscout' && !ns.connected) || (sub === 'importFromNightscout' && (ns.importOption === null || ns.importStatus === 'running'));

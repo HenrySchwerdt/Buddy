@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, Pressable, Share, View } from 'react-native';
 import { AVAILABLE_CATEGORIES, buildSettingsExport, EXPORT_CATEGORIES, UNAVAILABLE_CATEGORIES, type ExportCategory } from '@/features/settings-b/export';
 import { now } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';
-import { Row, Section, T, TrioScreen, useTrioColors } from '@/trio';
+import { Row, Section, T, TrioScreen, disabledFill, useTrioColors } from '@/trio';
 
 /** Trio SettingsExport.RootView: pick categories, share the JSON via the iOS share sheet. */
 export default function ExportSettingsScreen() {
@@ -89,7 +89,7 @@ export default function ExportSettingsScreen() {
           justifyContent: 'center',
           flexDirection: 'row',
           gap: 10,
-          backgroundColor: selected.size === 0 ? (c.dark ? '#3A3A3C' : '#D1D1D6') : c.accent,
+          backgroundColor: selected.size === 0 ? disabledFill(c) : c.accent,
           opacity: pressed ? 0.85 : 1,
         })}>
         {exporting ? <ActivityIndicator color={c.onAccent} /> : null}

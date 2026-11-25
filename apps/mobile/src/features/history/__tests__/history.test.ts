@@ -54,3 +54,28 @@ describe('timeSpan', () => {
     expect(timeSpan(60)).toBe('1h');
   });
 });
+
+describe('external insulin rows', () => {
+  it('shows external insulin as "External Insulin" with its own filter type', () => {
+    const rows = treatmentRows([{ kind: 'bolus', id: 'e', date: NOW - 5 * MIN, units: 2.5, external: true }], NOW);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ title: 'External Insulin', type: 'externalBolus', amount: '2.5 U', dot: 'insulin' });
+  });
+
+  it('keeps pump boluses as Bolus', () => {
+    const [row] = treatmentRows([{ kind: 'bolus', id: 'b', date: NOW - 5 * MIN, units: 1 }], NOW);
+    expect(row).toMatchObject({ title: 'Bolus', type: 'bolus' });
+  });
+});
+
+describe('meal rows with notes', () => {
+  it('exposes the note of a carb entry', () => {
+    const [row] = mealRows([{ id: 'a', date: NOW - MIN, grams: 30, note: 'Pizza' }], NOW, false);
+    expect(row?.note).toBe('Pizza');
+  });
+
+  it('has no note for an entry without one or with a blank one', () => {
+    const rows = mealRows([{ id: 'a', date: NOW - MIN, grams: 30 }, { id: 'b', date: NOW - 2 * MIN, grams: 10, note: '  ' }], NOW, false);
+    expect(rows.map((r) => r.note)).toEqual([undefined, undefined]);
+  });
+});

@@ -1,4 +1,4 @@
-import type { ActiveOverride, ActiveTempTarget, CarbEntry, InsulinDose, Millis } from '@buddy/core';
+import { isExternalDose, type ActiveOverride, type ActiveTempTarget, type CarbEntry, type InsulinDose, type Millis } from '@buddy/core';
 import { ENTERED_BY, isNightscoutId, isoDate, round } from './format';
 import type { NightscoutTreatmentDoc, TreatmentEventType } from './types';
 
@@ -27,11 +27,17 @@ function suspendNotes(dose: Extract<InsulinDose, { kind: 'suspend' }>): Nightsco
   return [suspend, resume];
 }
 
+/** Trio's `determineBolusEventType`: SMB first, then external, otherwise a normal Bolus. */
+function bolusEventType(dose: Extract<InsulinDose, { kind: 'bolus' | 'smb' }>): TreatmentEventType {
+  if (dose.kind === 'smb') return 'SMB';
+  return isExternalDose(dose) ? 'External Insulin' : 'Bolus';
+}
+
 export function mapDoseToTreatments(dose: InsulinDose): NightscoutTreatmentDoc[] {
   switch (dose.kind) {
     case 'bolus':
     case 'smb':
-      return [{ ...base(dose.kind === 'smb' ? 'SMB' : 'Bolus', dose.date, dose.id), insulin: round(dose.units, INSULIN_PLACES) }];
+      return [{ ...base(bolusEventType(dose), dose.date, dose.id), insulin: round(dose.units, INSULIN_PLACES) }];
     case 'tempBasal': {
       // Like Trio: absolute rate in both `absolute` and `rate`; duration 0 ends the running temp.
       const rate = round(dose.rate, RATE_PLACES);
@@ -60,7 +66,8 @@ export function mapCarbToTreatment(carb: CarbEntry & CarbMacros): NightscoutTrea
     ...(carb.fat !== undefined ? { fat: round(carb.fat, 1) } : {}),
     ...(carb.protein !== undefined ? { protein: round(carb.protein, 1) } : {}),
     ...(carb.absorptionHours !== undefined ? { absorptionTime: Math.round(carb.absorptionHours * 60) } : {}),
-    ...(carb.note ? { notes: carb.note } : {}),
+    // Trio's CarbsStorage sends the note twice: as `notes` and as `foodType`.
+    ...(carb.note ? { notes: carb.note, foodType: carb.note } : {}),
   };
 }
 

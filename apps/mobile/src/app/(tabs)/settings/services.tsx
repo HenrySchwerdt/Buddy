@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { Platform } from 'react-native';
 import { UnavailableRow } from '@/features/settings-b/ui';
 import { NavRow, Section, TrioScreen } from '@/trio';
 
@@ -9,7 +10,7 @@ export default function ServicesScreen() {
       <Section header="Connected Services">
         <NavRow label="Nightscout" onPress={() => router.push('/settings/nightscout')} />
         <UnavailableRow label="Tidepool" />
-        <UnavailableRow label="Apple Health" />
+        <UnavailableRow label={Platform.OS === 'android' ? 'Health Connect' : 'Apple Health'} />
       </Section>
     </TrioScreen>
   );

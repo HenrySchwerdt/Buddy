@@ -58,7 +58,7 @@ export const PUMP_CATALOG: readonly CatalogEntry[] = [
 
 export const CGM_CATALOG: readonly CatalogEntry[] = [
   cgm({ id: 'LibreTransmitterManagerV3', manufacturer: 'Abbott', name: 'FreeStyle Libre 1 / 2 / 2+', supportedModels: [], image: null, pluginIds: ['libre-2-direct', 'libre-transmitter'] }),
-  cgm({ id: 'LibreLoopCGMManager', manufacturer: 'Abbott', name: 'FreeStyle Libre 3 / 3+ (Beta)', supportedModels: [], image: null, pluginIds: [] }),
+  cgm({ id: 'LibreLoopCGMManager', manufacturer: 'Abbott', name: 'FreeStyle Libre 3 / 3+ (Beta)', supportedModels: ['via LibreLinkUp cloud (delayed)'], image: null, pluginIds: ['libre-link-up'] }),
   cgm({ id: 'DexG5Transmitter', manufacturer: 'Dexcom', name: 'Dexcom G5', supportedModels: [], image: null, pluginIds: ['dexcom-g6'] }),
   cgm({ id: 'DexG6Transmitter', manufacturer: 'Dexcom', name: 'Dexcom G6 / ONE', supportedModels: [], image: 'dexcom-g6', pluginIds: ['dexcom-g6'] }),
   cgm({ id: 'G7CGMManager', manufacturer: 'Dexcom', name: 'Dexcom G7 / ONE+ / Stelo', supportedModels: [], image: 'dexcom-g7', pluginIds: ['dexcom-g7'] }),
@@ -123,6 +123,8 @@ export function setupErrors(pluginId: string, values: Values): string[] {
       return /^https:\/\/\S+$/.test(text(values, 'url')) ? [] : ['Enter your Nightscout URL, starting with https://.'];
     case 'dexcom-share':
       return text(values, 'username') && text(values, 'password') ? [] : ['Enter your Dexcom account username and password.'];
+    case 'libre-link-up':
+      return text(values, 'email') && text(values, 'password') ? [] : ['Enter your LibreLinkUp follower email and password.'];
     default:
       return [];
   }

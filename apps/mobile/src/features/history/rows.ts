@@ -1,7 +1,7 @@
 /**
  * Pure mapping of Buddy data to Trio's History rows (HistoryRootView+Treatments/Meals/Glucose).
  */
-import type { CarbEntry, GlucoseReading, InsulinDose, Trend } from '@buddy/core';
+import { isExternalDose, type CarbEntry, type GlucoseReading, type InsulinDose, type Trend } from '@buddy/core';
 
 export type HistoryMode = 'treatments' | 'meals' | 'glucose' | 'adjustments';
 export const HISTORY_MODES = [
@@ -33,8 +33,8 @@ export interface TreatmentRow {
   readonly amount?: string;
   readonly duration?: string;
   /**
-   * Trio only offers deletion for bolus events it may remove. Every Buddy dose is reported
-   * by the pump, so none is deletable (there is no external/manual insulin entry yet).
+   * Trio only offers deletion for bolus events it may remove. Buddy has no dose deletion yet, so
+   * none is deletable (pump doses come from the pump, external insulin stays in the log).
    */
   readonly deletable: boolean;
 }
@@ -59,6 +59,7 @@ export function treatmentRows(doses: readonly InsulinDose[], now: number): Treat
       switch (d.kind) {
         case 'bolus':
         case 'smb':
+          if (isExternalDose(d)) return { id: d.id, date: d.date, type: 'externalBolus', dot: 'insulin', title: 'External Insulin', amount: `${upTo3(d.units)} U`, deletable: false };
           return { id: d.id, date: d.date, type: d.kind, dot: 'insulin', title: d.kind === 'smb' ? 'SMB' : 'Bolus', amount: `${upTo3(d.units)} U`, deletable: false };
         case 'tempBasal':
           return {
@@ -82,13 +83,15 @@ export interface MealRow {
   readonly id: string;
   readonly date: number;
   readonly amount: string;
+  /** Trimmed note, shown under the row like Trio's `square.and.pencil` line; absent when blank. */
+  readonly note?: string;
   readonly entry: CarbEntry;
 }
 
 export function mealRows(carbs: readonly CarbEntry[], now: number, showFuture: boolean): MealRow[] {
   return carbs
     .filter((c) => c.date >= now - DAY_MS && (showFuture || c.date <= now))
-    .map((c) => ({ id: c.id, date: c.date, amount: `${upTo2(c.grams)} g`, entry: c }))
+    .map((c) => ({ id: c.id, date: c.date, amount: `${upTo2(c.grams)} g`, note: c.note?.trim() || undefined, entry: c }))
     .sort((a, b) => b.date - a.date);
 }
 

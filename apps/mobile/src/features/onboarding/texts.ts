@@ -69,7 +69,7 @@ export function deliveryDescription(step: DeliverySubstep, g: (mgdl: number) => 
       ];
     case 'minimumSafetyThreshold':
       return [
-        { text: 'Default: Set by Algorithm', bold: true },
+        { text: `Default: ${g(60)} ${u}`, bold: true },
         { text: 'Minimum Threshold Setting is, by default, determined by your set Glucose Target. This threshold automatically suspends insulin delivery if your glucose levels are forecasted to fall below this value. It’s designed to protect against hypoglycemia, particularly during sleep or other vulnerable times.' },
         { text: 'Buddy will use the larger of the default setting calculation below and the value entered here.' },
         { lines: [{ text: 'The default setting is based on this calculation:', bold: true }, 'TargetGlucose - 0.5 × (TargetGlucose - 40)'] },
@@ -173,6 +173,7 @@ export function algorithmDescription(step: AlgorithmSubstep, gu: GlucoseText): B
     case 'rewindResetsAutosens':
       return [
         def('Default: ON'),
+        { text: 'Note: Buddy does not reset Autosens on a pump rewind yet, so this choice is saved but has no effect today.', bold: true, color: 'orange' },
         { text: 'Medtronic and Dana Users Only', bold: true },
         { text: 'This feature resets the Autosens Ratio to neutral when you rewind your pump on the assumption that this corresponds to a site change.' },
         { text: 'Autosens will begin learning sensitivity anew from the time of the rewind, which may take up to 6 hours.' },

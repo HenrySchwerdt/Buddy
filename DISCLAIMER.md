@@ -6,7 +6,11 @@ any regulator (FDA, EU MDR or otherwise), and it is not intended to diagnose, tr
 prevent any disease.
 
 - Do not use Buddy to make treatment decisions.
-- The bundled devices are simulated. Real pump drivers are not included.
+- The demo pump and CGM are simulated. Buddy also contains **experimental** pump and CGM
+  drivers (Dana, Medtrum, Dexcom, Libre, Nightscout); they are verified only against protocol
+  simulators, not on hardware, and must never be used on or with a person. Closed loop stays
+  off for a pump until its in-app hardware check is done and refuses mixed real and
+  simulated devices.
 - Simulation results compare algorithms against each other on a mathematical model. They
   do **not** predict how any algorithm will behave for a real person.
 

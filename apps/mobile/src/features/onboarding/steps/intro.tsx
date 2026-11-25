@@ -216,7 +216,7 @@ export function CompletedStep({ chapter }: { chapter: Chapter | null }) {
 const styles = StyleSheet.create({
   welcome: { alignItems: 'center', padding: 16, paddingTop: 140 },
   logo: { width: 100, height: 100, borderRadius: 50 },
-  link: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: alpha('#0A84FF', 0.2) },
+  link: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: alpha(OB.blue, 0.2) },
   ack: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 10, borderWidth: 2, backgroundColor: OB.card },
   count: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   itemHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },

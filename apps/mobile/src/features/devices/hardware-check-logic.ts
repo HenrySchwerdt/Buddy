@@ -38,7 +38,7 @@ export const HARDWARE_STEPS: readonly HardwareStep[] = [
     id: 'linkDrop',
     title: 'Link Drop During a Bolus',
     instruction:
-      'Buddy starts a bolus. While it runs, turn off Bluetooth on this iPhone (Control Center) and turn it back on after 30 seconds. Buddy must then report exactly what the pump history shows.',
+      'Buddy starts a bolus. While it runs, turn off Bluetooth on this phone (Control Center) and turn it back on after 30 seconds. Buddy must then report exactly what the pump history shows.',
   },
 ];
 

@@ -59,6 +59,7 @@ export default function TreatmentSheet() {
       fat: m.fat,
       protein: m.protein,
       amount: m.amount,
+      note: draft.note,
       externalInsulin: draft.externalInsulin,
       date: draft.date,
       backdated: m.backdated,

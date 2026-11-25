@@ -4,6 +4,7 @@ import {
   createLoopEngine,
   createMemoryStore,
   guardManualBolus,
+  migrateSnapshot,
   newId,
   normalizeSettings,
   systemClock,
@@ -234,7 +235,7 @@ async function restoreData(demo: boolean) {
   }
   try {
     const raw = await Storage.getItem(DATA_KEY);
-    if (raw) store.replace(JSON.parse(raw) as DataSnapshot);
+    if (raw) store.replace(migrateSnapshot(JSON.parse(raw) as DataSnapshot));
   } catch (e) {
     log.warn(`Could not restore data: ${String(e)}`);
   }
@@ -272,9 +273,10 @@ export const now = () => clock.now();
 
 // ── User actions ─────────────────────────────────────────────────────────────
 
-export async function logCarbs(grams: number, absorptionHours = 3): Promise<void> {
+export async function logCarbs(grams: number, absorptionHours = 3, note?: string): Promise<void> {
   if (!(grams > 0 && grams <= 300)) throw new Error('Carbs must be between 1 and 300 g');
-  store.addCarbs({ id: newId('carbs'), date: clock.now(), grams, absorptionHours });
+  const trimmed = note?.trim();
+  store.addCarbs({ id: newId('carbs'), date: clock.now(), grams, absorptionHours, ...(trimmed ? { note: trimmed } : {}) });
   if (useRuntime.getState().demo) demoHub.eat(grams);
 }
 

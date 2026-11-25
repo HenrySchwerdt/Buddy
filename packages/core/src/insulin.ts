@@ -7,6 +7,11 @@ export const DEFAULT_PEAK_MINUTES: Record<InsulinCurve, number> = {
   'ultra-rapid': 55,
 };
 
+/** True for insulin logged by hand that the pump never delivered (Trio's external insulin). */
+export function isExternalDose(dose: InsulinDose): boolean {
+  return (dose.kind === 'bolus' || dose.kind === 'smb') && dose.external === true;
+}
+
 export interface InsulinModel {
   readonly diaMinutes: number;
   readonly peakMinutes: number;

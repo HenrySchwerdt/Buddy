@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from '@/trio/symbol';
 import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { connectToNightscout, prefillNightscout } from '../nightscout';
 import { useOnboardingDraft } from '../store';
 import { OB, OT } from '../theme';
@@ -16,7 +16,7 @@ export function NightscoutSetupStep() {
       <RadioCard label="Setup Nightscout for Buddy" selected={setup === 'setup'} onPress={() => setNightscout({ setup: 'setup' })} />
       <RadioCard label="Skip Nightscout Setup" selected={setup === 'skip'} onPress={() => setNightscout({ setup: 'skip' })} />
       <Footnote>You can use Nightscout to import your existing therapy settings, or if you prefer, you can only connect to Nightscout, and configure therapy settings from scratch.</Footnote>
-      <Footnote>Other third-party services, like Apple Health or Tidepool, can be added later through the settings menu.</Footnote>
+      <Footnote>{`Other third-party services, like ${Platform.OS === 'android' ? 'Health Connect' : 'Apple Health'} or Tidepool, can be added later through the settings menu.`}</Footnote>
     </Stack>
   );
 }

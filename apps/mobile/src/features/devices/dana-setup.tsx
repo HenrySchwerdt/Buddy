@@ -111,8 +111,8 @@ export function DanaSetup({ plugin, entryId, onConnected }: { plugin: PumpPlugin
           <TextRow>After setting up the bolus speed, you will see all the found Dana pumps. Select the pump you want to link with Buddy.</TextRow>
           <TextRow>
             {model === 'dana-i'
-              ? 'During the pairing process, your Dana-i will show a pairing prompt while your iPhone will show a prompt for a pairing code. On you pump, select OK and type the 6-digit code in screen on your iPhone. After that, Buddy is ready to communicate with your Dana-i'
-              : 'During the pairing process, your DanaRS v3 will show a pairing prompt while you iPhone will show a prompt for two pairing codes. On your pump, select OK and type the two codes on your iPhone. After that, Buddy is ready to communicate with your DanaRS v3'}
+              ? 'During the pairing process, your Dana-i will show a pairing prompt while your phone will show a prompt for a pairing code. On your pump, select OK and type the 6-digit code in screen on your phone. After that, Buddy is ready to communicate with your Dana-i'
+              : 'During the pairing process, your DanaRS v3 will show a pairing prompt while your phone will show a prompt for two pairing codes. On your pump, select OK and type the two codes on your phone. After that, Buddy is ready to communicate with your DanaRS v3'}
           </TextRow>
         </Section>
         <PrimaryButton label="Continue" onPress={() => setStep('scan')} />

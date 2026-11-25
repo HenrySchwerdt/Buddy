@@ -3,7 +3,7 @@ import { SymbolView } from '@/trio/symbol';
 import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Row, T, TrioBackground, useTrioColors } from '@/trio';
+import { Row, T, TrioBackground, disabledFill, onFill, useTrioColors } from '@/trio';
 
 /** `HStack { Text(label); Spacer(); Text(value).foregroundColor(open ? .accentColor : .primary).onTapGesture }`. */
 export function TapValueRow({ label, value, open, onPress, dim }: { label: string; value: string; open: boolean; onPress: () => void; dim?: boolean }) {
@@ -80,7 +80,7 @@ export function ErrorHeader({ message }: { message: string | null }) {
 /** A `Button` used as a whole List row with `.listRowBackground(...)` ("Start Override", "Save as Preset"). */
 export function ListButton({ label, onPress, disabled, background }: { label: string; onPress: () => void; disabled?: boolean; background: string }) {
   const c = useTrioColors();
-  const bg = disabled ? (c.dark ? '#3A3A3C' : '#D1D1D6') : background;
+  const bg = disabled ? disabledFill(c) : background;
   return (
     <Pressable
       disabled={disabled}
@@ -91,7 +91,7 @@ export function ListButton({ label, onPress, disabled, background }: { label: st
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       style={({ pressed }) => [styles.listButton, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }]}>
-      <T color={disabled ? c.secondary : '#FFFFFF'}>{label}</T>
+      <T color={disabled ? c.secondary : onFill(c, background)}>{label}</T>
     </Pressable>
   );
 }

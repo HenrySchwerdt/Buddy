@@ -5,6 +5,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { computeIob, isOverrideActive, isTempTargetActive, scheduleValueAt, MINUTE } from '@buddy/core';
 import { dayStats } from '@/features/day-stats';
+import { upTo3 } from '@/features/history/rows';
 import { fmtDelta, fmtG, fmtTime, fmtU } from '@/features/format';
 import { GlucoseBobble, LoopView, PumpView } from '@/features/home/header';
 import { MainChart } from '@/features/home/main-chart';
@@ -134,7 +135,7 @@ export default function HomeScreen() {
           {rate !== null || rt.pump?.suspended ? (
             <GlassChip style={styles.rateChip}>
               <T style_="subheadline" rounded weight="600" color={temp ? c.insulin : c.insulin}>
-                {rt.pump?.suspended ? 'Suspended' : `${fmtU(rate, rate! < 1 ? 1 : 2)} U/hr`}
+                {rt.pump?.suspended ? 'Suspended' : `${upTo3(rate!)} U/hr`}
               </T>
             </GlassChip>
           ) : null}

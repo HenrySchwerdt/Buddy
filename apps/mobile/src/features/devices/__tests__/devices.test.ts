@@ -23,7 +23,14 @@ describe('device catalog', () => {
 
   test('devices without a Buddy driver are listed but not selectable', () => {
     const unsupported = [...PUMP_CATALOG, ...CGM_CATALOG].filter((e) => !isSupported(e)).map((e) => e.name);
-    expect(unsupported).toEqual(['Omnipod', 'MiniMed', 'FreeStyle Libre 3 / 3+ (Beta)', 'Accu-Chek SmartGuide', 'Eversense', 'Syai Ultra', 'xDrip4iOS']);
+    expect(unsupported).toEqual(['Omnipod', 'MiniMed', 'Accu-Chek SmartGuide', 'Eversense', 'Syai Ultra', 'xDrip4iOS']);
+  });
+
+  test('Libre 3 / 3+ is selectable and backed by the LibreLinkUp follower', () => {
+    const e = CGM_CATALOG.find((c) => c.id === 'LibreLoopCGMManager');
+    expect(e?.name).toBe('FreeStyle Libre 3 / 3+ (Beta)');
+    expect(e && isSupported(e)).toBe(true);
+    expect(entryForPlugin('cgm', 'libre-link-up')?.id).toBe('LibreLoopCGMManager');
   });
 
   test('entryForPlugin keeps the entry the user picked (G5 vs G6 share a driver)', () => {
@@ -40,6 +47,8 @@ describe('device catalog', () => {
     expect(setupErrors('medtrum-nano', { serialNumber: 'XYZ' })).toHaveLength(1);
     expect(setupErrors('dexcom-g6', { transmitterId: '8G1234' })).toEqual([]);
     expect(setupErrors('nightscout-cgm', { url: 'http://insecure.example' })).toHaveLength(1);
+    expect(setupErrors('libre-link-up', { email: 'a@b.c', password: 'x' })).toEqual([]);
+    expect(setupErrors('libre-link-up', { email: 'a@b.c', password: '' })).toHaveLength(1);
     expect(setupErrors('demo-pump', {})).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import { CapsuleButton, InputRow, Section, SheetScreen, T, useTrioColors } from '@/trio';
+import { CapsuleButton, InputRow, Section, SheetScreen, T, disabledFill, useTrioColors } from '@/trio';
 import { useSettings } from '@/runtime/settings-store';
 import { addManualGlucose, manualGlucoseMgdl, parseGlucoseInput, useHistoryMode } from './actions';
 
@@ -35,7 +35,7 @@ export function AddGlucoseScreen() {
           setMode('glucose');
           router.back();
         }}
-        style={({ pressed }) => [styles.save, { backgroundColor: disabled ? (c.dark ? '#3A3A3C' : '#D1D1D6') : c.accent, opacity: pressed ? 0.85 : 1 }]}>
+        style={({ pressed }) => [styles.save, { backgroundColor: disabled ? disabledFill(c) : c.accent, opacity: pressed ? 0.85 : 1 }]}>
         <T color={disabled ? c.secondary : c.onAccent}>Save</T>
       </Pressable>
     </SheetScreen>

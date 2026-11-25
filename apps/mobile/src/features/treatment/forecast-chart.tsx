@@ -1,13 +1,14 @@
 import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { memo, useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Platform, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import { HOUR, MINUTE, type GlucoseReading, type Predictions } from '@buddy/core';
 import { T, trioGlucoseColor, type TrioColors } from '@/trio';
 import { forecastCone } from './forecast';
 import { bolusChipFormatter, formatGlucoseValue, type GlucoseUnits } from './formatting';
 
-const SYSTEM_BLUE = '#0A84FF';
+/** Insulin colour of the chip and forecast cone: systemBlue on iOS (Trio), Trio's insulin blue elsewhere. */
+const SYSTEM_BLUE = Platform.OS === 'ios' ? '#0A84FF' : '#1E96FC';
 const MGDL_PER_MMOLL = 18.0182;
 const PLOT_H = 120;
 /** Room above the top grid line so its y-axis label is not clipped. */

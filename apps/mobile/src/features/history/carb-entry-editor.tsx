@@ -6,15 +6,22 @@ import { CapsuleButton, InputRow, PrimaryButton, Section, SheetScreen, ValueRow,
 import { updateCarbs } from './actions';
 import { upTo2 } from './rows';
 
+/** Trio's `TextFieldWithToolBarString(maxLength: 25)`. */
+const MAX_NOTE_LENGTH = 25;
+
 /** Trio's default `maxCarbs` (Buddy has no carb limit setting yet). */
 const MAX_CARBS_G = 250;
 
-/** CarbEntryEditorView ("Edit Meal"), carbs only: Buddy records neither fat/protein nor notes. */
+/** CarbEntryEditorView ("Edit Meal"): carbs and note (Buddy does not record fat/protein). */
 export function CarbEntryEditor({ entry, onClose }: { entry: CarbEntry | null; onClose: () => void }) {
   const c = useTrioColors();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
-  useEffect(() => setText(entry ? upTo2(entry.grams) : ''), [entry]);
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    setText(entry ? upTo2(entry.grams) : '');
+    setNote(entry?.note ?? '');
+  }, [entry]);
   const grams = Number(text.replace(',', '.'));
   const valid = text.trim() !== '' && Number.isFinite(grams) && grams >= 0;
   const exceeded = valid && grams > MAX_CARBS_G;
@@ -31,7 +38,7 @@ export function CarbEntryEditor({ entry, onClose }: { entry: CarbEntry | null; o
                 disabled={!valid || exceeded}
                 onPress={() => {
                   if (!entry) return;
-                  updateCarbs(entry, grams, entry.date);
+                  updateCarbs(entry, grams, entry.date, note);
                   onClose();
                 }}
               />
@@ -39,6 +46,7 @@ export function CarbEntryEditor({ entry, onClose }: { entry: CarbEntry | null; o
           }>
           <Section>
             <InputRow label="Carbs" value={text} onChangeText={setText} unit="g" keyboardType="number-pad" />
+            <InputRow icon="square.and.pencil" value={note} onChangeText={setNote} placeholder="Note..." keyboardType="default" maxLength={MAX_NOTE_LENGTH} />
           </Section>
           <Section>
             <ValueRow label="Time" value={entry ? new Date(entry.date).toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} />

@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Linking, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, View } from 'react-native';
 import { pairLibreSensor, restartRuntime, useRuntime } from '@/runtime/runtime';
-import { CapsuleButton, PrimaryButton, Row, Section, SheetScreen, T, useTrioColors } from '@/trio';
+import { useSettings } from '@/runtime/settings-store';
+import { CapsuleButton, PrimaryButton, Row, Section, SheetScreen, T, ToggleRow, useTrioColors } from '@/trio';
 import { deleteDevice, deviceErrors, errorText, saveDeviceValues, useActiveDevice, useDeviceValues } from '@/features/devices/device-actions';
 import { PluginForm } from '@/features/devices/plugin-form';
 
@@ -78,8 +79,7 @@ export default function CgmSettings() {
     <SheetScreen
       title={entry.name}
       leading={close}
-      trailing={dirty ? <CapsuleButton label="Save" onPress={() => void save()} /> : undefined}
-      footer={<PrimaryButton label="Delete CGM" color={c.red} onPress={confirmDelete} style={{ height: 44, borderRadius: 10 }} />}>
+      trailing={dirty ? <CapsuleButton label="Save" onPress={() => void save()} /> : undefined}>
       <Section header="Configuration">
         <Row>
           <View style={{ flex: 1, gap: 10 }}>
@@ -107,6 +107,8 @@ export default function CgmSettings() {
         </Section>
       ) : null}
 
+      {plugin.meta.transport === 'network' ? <CloudLoopAcknowledgement id={id} name={entry.name} /> : null}
+
       <PluginForm
         sections={plugin.settings}
         values={values}
@@ -117,7 +119,7 @@ export default function CgmSettings() {
       />
 
       {id === 'libre-2-direct' ? (
-        <Section footer="Pair a new, warmed-up sensor: hold the top of your iPhone to it.">
+        <Section footer={`Pair a new, warmed-up sensor: hold the back of your ${Platform.OS === 'android' ? 'phone' : 'iPhone'} to it.`}>
           <Row onPress={busy ? undefined : () => void pair()}>
             <T color={c.tabBar} style={{ flex: 1 }}>
               Pair New Sensor
@@ -137,6 +139,40 @@ export default function CgmSettings() {
         </T>
       ) : null}
       {dirty ? <PrimaryButton label="Save" loading={busy === 'save'} onPress={() => void save()} /> : null}
+      <PrimaryButton label="Delete CGM" color={c.red} onPress={confirmDelete} style={{ height: 44, borderRadius: 10 }} />
     </SheetScreen>
+  );
+}
+
+/**
+ * Cloud CGMs (LibreLinkUp, Dexcom Share, Nightscout) deliver readings minutes late. Closed loop with
+ * one stays off until the user acknowledges that here (the gate checks `hardwareChecks[id]`).
+ */
+function CloudLoopAcknowledgement({ id, name }: { id: string; name: string }) {
+  const acknowledged = useSettings((s) => Boolean(s.hardwareChecks[id]));
+  const update = useSettings((s) => s.update);
+  const setAcknowledged = (on: boolean) => {
+    const checks = { ...useSettings.getState().hardwareChecks };
+    if (on) checks[id] = Date.now();
+    else delete checks[id];
+    update({ hardwareChecks: checks });
+    void restartRuntime();
+  };
+  return (
+    <Section
+      header="Closed Loop"
+      footer={`${name} reads glucose from the cloud, typically several minutes behind the sensor. Readings older than your maximum glucose age stop all dosing.`}>
+      <ToggleRow
+        label="Allow closed loop with this CGM"
+        value={acknowledged}
+        onChange={(on) => {
+          if (!on) return setAcknowledged(false);
+          Alert.alert('Delayed glucose', `Closed loop will dose on ${name} readings that arrive with a delay. Use this only for bench testing.`, [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'I understand', onPress: () => setAcknowledged(true) },
+          ]);
+        }}
+      />
+    </Section>
   );
 }

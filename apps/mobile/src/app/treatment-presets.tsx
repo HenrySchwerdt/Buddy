@@ -2,7 +2,8 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { SymbolView } from '@/trio/symbol';
 import { useMemo, useState } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { choose as chooseFromList } from '@/trio/choice-dialog';
 import { CapsuleButton, Row, Section, T, TrioScreen, useTrioColors } from '@/trio';
 import { AddPresetSheet } from '@/features/treatment/add-preset-sheet';
 import { useTreatmentDraft } from '@/features/treatment/draft-store';
@@ -22,6 +23,7 @@ const fmt = (v: number) => new Intl.NumberFormat(undefined, { maximumFractionDig
 /** Port of Trio's `MealPresetView` ("Meal Presets"). */
 export default function TreatmentPresetsSheet() {
   const c = useTrioColors();
+  const blue = Platform.OS === 'android' ? c.accent : SYSTEM_BLUE;
   const { presets: stored, add, remove } = useMealPresets();
   const useFPU = useTreatmentSettings((s) => s.useFPUconversion);
   const presets = useMemo(() => sortedPresets(stored), [stored]);
@@ -56,13 +58,9 @@ export default function TreatmentPresetsSheet() {
       if (p) addServing(p);
     };
     void Haptics.selectionAsync();
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ title: 'Preset', options: [...options, 'Cancel'], cancelButtonIndex: options.length }, (i) => {
-        if (i < options.length) pick(i);
-      });
-    } else {
-      Alert.alert('Preset', undefined, [...options.map((o, i) => ({ text: o, onPress: () => pick(i) })), { text: 'Cancel', style: 'cancel' as const }]);
-    }
+    void chooseFromList({ title: 'Preset', items: options.map((label) => ({ label })) }).then((i) => {
+      if (i !== null) pick(i);
+    });
   };
 
   const confirmDelete = () => {
@@ -102,16 +100,16 @@ export default function TreatmentPresetsSheet() {
           <Row>
             {selection ? (
               <Pressable onPress={removeServing} disabled={!canRemove} accessibilityRole="button" accessibilityLabel="Remove one serving" hitSlop={6}>
-                <SymbolView name="minus.circle.fill" size={24} tintColor={canRemove ? SYSTEM_BLUE : c.tertiary} />
+                <SymbolView name="minus.circle.fill" size={24} tintColor={canRemove ? blue : c.tertiary} />
               </Pressable>
             ) : null}
             <Pressable onPress={choose} accessibilityRole="button" accessibilityLabel={`Preset, ${selection?.dish ?? 'Saved Food'}`} style={styles.picker}>
               <T color={c.tabBar}>{selection?.dish ?? 'Saved Food'}</T>
-              <SymbolView name="chevron.up.chevron.down" size={13} tintColor={c.tabBar} weight="semibold" />
+              {Platform.OS === 'android' ? <SymbolView name={{ android: 'arrow_drop_down' }} size={24} tintColor={c.tabBar} /> : <SymbolView name="chevron.up.chevron.down" size={13} tintColor={c.tabBar} weight="semibold" />}
             </Pressable>
             {selection ? (
               <Pressable onPress={() => addServing(selection)} accessibilityRole="button" accessibilityLabel="Add one serving" hitSlop={6}>
-                <SymbolView name="plus.circle.fill" size={24} tintColor={SYSTEM_BLUE} />
+                <SymbolView name="plus.circle.fill" size={24} tintColor={blue} />
               </Pressable>
             ) : null}
           </Row>
@@ -127,7 +125,7 @@ export default function TreatmentPresetsSheet() {
             <View style={styles.summary}>
               {counts.map(([dish, n]) => (
                 <View key={dish} style={{ flexDirection: 'row', gap: 8 }}>
-                  <T color={SYSTEM_BLUE}>{`${n} x`}</T>
+                  <T color={blue}>{`${n} x`}</T>
                   <T>{dish}</T>
                 </View>
               ))}

@@ -427,12 +427,14 @@ export function bolusBuckets(doses: readonly InsulinDose[], interval: Interval, 
     const to = bucketEnd(interval, date);
     let manual = 0;
     let smb = 0;
+    let external = 0;
     for (const d of doses) {
       if (d.date < date || d.date >= to) continue;
-      if (d.kind === 'bolus') manual += d.units;
+      if (d.kind === 'bolus' && d.external) external += d.units;
+      else if (d.kind === 'bolus') manual += d.units;
       if (d.kind === 'smb') smb += d.units;
     }
-    return { date, values: [manual, smb, 0] };
+    return { date, values: [manual, smb, external] };
   });
 }
 

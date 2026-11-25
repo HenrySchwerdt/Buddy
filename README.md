@@ -1,7 +1,7 @@
 # Buddy
 
 An extensible, open-source automated insulin delivery **research app** for iOS and Android,
-built with React Native / Expo and inspired by [Trio](https://github.com/nightscout/Trio).
+built with React Native / Expo (TypeScript) as a port of [Trio](https://github.com/nightscout/Trio).
 
 > ⚠️ **Not a medical device.** Read [DISCLAIMER.md](DISCLAIMER.md). Buddy ships with a virtual
 > patient, pump and CGM only.
@@ -14,7 +14,7 @@ built with React Native / Expo and inspired by [Trio](https://github.com/nightsc
 | [`packages/algorithms`](packages/algorithms) | Dosing algorithms as plugins + a conformance test kit |
 | [`packages/simulator`](packages/simulator) | Hovorka virtual patients, scenarios, consensus CGM metrics, benchmark CLI |
 | [`packages/devices`](packages/devices) | Pump/CGM plugins (BLE drivers in TypeScript), shadow mode, BLE test kit + pump contract |
-| [`apps/mobile`](apps/mobile) | The Expo app (Home, Lab, History, Settings) |
+| [`apps/mobile`](apps/mobile) | The Expo app (Home, Treatments, History, Adjustments, Settings, Onboarding) |
 
 ### Algorithms
 
@@ -32,17 +32,70 @@ built with React Native / Expo and inspired by [Trio](https://github.com/nightsc
 | Pumps | Demo pump (virtual patient), Follow Trio via Nightscout (shadow mode, read-only), Dana-i / Dana RS, Medtrum Nano |
 | CGMs | Demo CGM, Nightscout, Dexcom Share, Dexcom G6, Dexcom G7, Libre |
 
-Hardware drivers are TypeScript ports of the MIT-licensed Swift drivers used by Trio and are
+Hardware drivers are TypeScript ports of MIT-licensed Swift drivers (DanaKit, MedtrumKit, as used by Trio) and are
 **experimental**: verified against protocol simulators and the original test vectors, not yet
-on hardware. Pumps need the in-app hardware check before closed loop.
+on hardware. Pumps need the in-app hardware check before closed loop (see above).
+
+## User interface
+
+- **iOS** follows Trio dev 1:1: same screens, copy and order, using SwiftUI controls through
+  `@expo/ui` where Trio does.
+- **Android** is Material 3 through platform branches, not a separate app: `Platform.OS`
+  checks in `apps/mobile/src/trio/*`, `.android.tsx` twins (`app/(tabs)/_layout.android.tsx`,
+  `features/adjustments/components/native.android.tsx`), the Material palette
+  (`MD_DARK` / `MD_LIGHT` in `trio/colors.ts`), an SF Symbol to Material Symbol table
+  (`trio/symbol-map.ts`, covered by `trio/__tests__/symbol.test.ts`) and Material dialogs
+  (`trio/choice-dialog.tsx`).
+- The Lab (algorithm benchmark on virtual patients) is CLI only: `pnpm sim`.
+
+See [docs/UI-PORTING.md](docs/UI-PORTING.md).
+
+## Closed loop gate
+
+Closed loop only runs when `closedLoopBlockReason()`
+(`apps/mobile/src/runtime/closed-loop-gate.ts`) returns `null`; otherwise Buddy stays in open
+loop. It blocks when:
+
+1. pump or CGM is missing;
+2. the pump is read-only (shadow mode, "Follow Trio");
+3. a simulated (demo) pump is paired with a real CGM, or a real pump with a simulated CGM;
+4. the pump driver `requiresHardwareCheck` and the in-app hardware check has not been completed.
 
 ## Quick start
 
 ```bash
 pnpm install
-pnpm test            # 70+ tests: core, safety, algorithms, simulator, devices
-pnpm sim             # benchmark every algorithm on the virtual cohort
-cd apps/mobile && npx expo run:ios     # or run:android
+npx vitest run       # all tests: core, safety, algorithms, simulator, devices, app logic
+pnpm sim             # benchmark every algorithm on the virtual cohort (CLI)
+```
+
+### Dev builds (`apps/mobile`)
+
+Expo Go is not enough (native modules); build a dev client.
+
+```bash
+cd apps/mobile
+npx expo run:ios        # needs Xcode
+npx expo run:android    # needs JDK 17 or 21 and the Android SDK
+```
+
+- **iOS and Xcode 26:** `pnpm install` applies `patches/expo-modules-jsi@58.0.23.patch`
+  (configured under `pnpm.patchedDependencies` in `package.json`). It makes
+  `expo-modules-jsi` compile with Xcode 26.3's stricter isolation checker. Run `pnpm install`
+  again after touching the patch.
+- **Android:** Gradle needs JDK 17 or 21, and the system default may be newer. Use Android
+  Studio's bundled JBR, for example:
+
+  ```bash
+  export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+  npx expo run:android
+  ```
+
+### Tests and type checks
+
+```bash
+npx vitest run                      # from the repo root
+cd apps/mobile && npx tsc --noEmit  # app type check (root: pnpm typecheck runs both)
 ```
 
 ## Architecture in one picture
@@ -58,3 +111,34 @@ Pump plugin ┘      ▲                 └──────┬─────
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ADDING_AN_ALGORITHM.md](docs/ADDING_AN_ALGORITHM.md)
 and [docs/ADDING_A_DEVICE.md](docs/ADDING_A_DEVICE.md).
+
+## Licensing
+
+Buddy's own code is released under the [MIT License](LICENSE). It is a derivative work in
+several places, so the facts are listed here (checked against a local checkout of Trio dev,
+`git` HEAD `9130fc8e3`, on 2026-11-25):
+
+| Part of Buddy | Derived from | Upstream license found |
+| --- | --- | --- |
+| `packages/algorithms/src/oref/engine` (TypeScript port of `determine-basal.js` and friends) | oref0 via `trio-oref` | MIT; the notice is kept in `packages/algorithms/src/oref/LICENSE-oref` |
+| `packages/devices` Dana / Medtrum drivers | DanaKit, MedtrumKit (Swift) | MIT (`DanaKit/LICENSE`, `MedtrumKit/LICENSE` in the Trio tree) |
+| `apps/mobile` screens, layout, behaviour and defaults (iOS UI is a 1:1 port) | Trio dev app (SwiftUI) | Trio's top-level `LICENSE.txt`: MIT, Copyright (c) 2021 Ivan Valkou |
+| `apps/mobile/src/features/settings/trio-copy.ts`, `features/onboarding/texts.ts` and other help texts | Trio dev help texts, mostly verbatim | same as the line above |
+| `docs/trio-reference/*.png` | screenshots of the Trio dev UI | same as the line above (screenshots, not code) |
+
+Findings and the open question:
+
+- Trio is **MIT-licensed, not AGPL-3.0**: both the fork that was ported from and the upstream
+  `nightscout/Trio` checkout carry the same `LICENSE.txt` (MIT, Copyright (c) 2021 Ivan Valkou).
+  No AGPL or GPL text exists in the tree; bundled sub-projects carry their own MIT or
+  BSD-2-Clause files.
+- Trio's `ACKNOWLEDGEMENTS.md` lists non-code assets under other terms (alarm sounds CC0,
+  Amy voice CC BY-SA 4.0, Bryce voice public domain). Buddy does not bundle any of these audio
+  files.
+- MIT requires keeping the copyright notice with substantial portions. The Trio notice is
+  reproduced in [`NOTICE`](NOTICE) (and for the oref engine in `LICENSE-oref`).
+- Not reviewed: the licenses of Trio sub-projects beyond the headers listed above, and any
+  contribution terms of the Trio project.
+
+This section states facts and an open question, not legal advice. Have the license situation
+of the UI and text port reviewed before any public distribution.

@@ -191,3 +191,28 @@ describe('mapLoopRunToDeviceStatus (NightscoutStatus field names)', () => {
     expect(s.openaps.iob.iob).toBe(2.123);
   });
 });
+
+describe('external insulin and carb notes (Trio parity)', () => {
+  it('uploads external insulin as an External Insulin treatment, not a Bolus', () => {
+    const doses: InsulinDose[] = [{ kind: 'bolus', id: 'e1', date: T0, units: 2.5, external: true }];
+    expect(mapDosesToTreatments(doses)).toEqual([
+      { eventType: 'External Insulin', created_at: iso(T0), enteredBy: 'Buddy', identifier: 'e1', id: 'e1', insulin: 2.5 },
+    ]);
+  });
+
+  it('still uploads a pump bolus as Bolus', () => {
+    const [t] = mapDosesToTreatments([{ kind: 'bolus', id: 'b1', date: T0, units: 1 }]);
+    expect(t?.eventType).toBe('Bolus');
+  });
+
+  it('sends a carb note as both notes and foodType, like Trio', () => {
+    const [t] = mapCarbsToTreatments([{ id: 'c3', date: T0, grams: 30, note: 'Pizza' }]);
+    expect(t).toMatchObject({ notes: 'Pizza', foodType: 'Pizza' });
+  });
+
+  it('omits notes and foodType when the carb entry has no note', () => {
+    const [t] = mapCarbsToTreatments([{ id: 'c4', date: T0, grams: 30 }]);
+    expect(t).not.toHaveProperty('notes');
+    expect(t).not.toHaveProperty('foodType');
+  });
+});

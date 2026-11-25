@@ -25,8 +25,13 @@ export function deleteCarbs(entry: CarbEntry): void {
   store.removeCarbs(entry.id);
 }
 
-/** Edit Meal: same id, new amount (and date). */
-export function updateCarbs(entry: CarbEntry, grams: number, date: number): void {
+/**
+ * Edit Meal: same id, new amount, date and note. Without `note` the stored note is kept;
+ * a blank note removes it (Trio's `newNote`).
+ */
+export function updateCarbs(entry: CarbEntry, grams: number, date: number, note?: string): void {
+  const { note: previous, ...rest } = entry;
+  const next = (note === undefined ? previous : note.trim()) || undefined;
   store.removeCarbs(entry.id);
-  store.addCarbs({ ...entry, grams, date });
+  store.addCarbs({ ...rest, grams, date, ...(next ? { note: next } : {}) });
 }

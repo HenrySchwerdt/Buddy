@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { useTrioColors } from './colors';
+import { disabledFill, onFill, useTrioColors } from './colors';
 import { GlassPanel } from './glass';
 import { T } from './text';
 
@@ -56,7 +56,7 @@ export function CapsuleButton({ label, icon, iconFirst, onPress, color, accessib
 /** Full-width primary action ("Continue Without Treatment", "Start Override"). */
 export function PrimaryButton({ label, onPress, disabled, loading, color, style }: { label: string; onPress: () => void; disabled?: boolean; loading?: boolean; color?: string; style?: StyleProp<ViewStyle> }) {
   const c = useTrioColors();
-  const bg = disabled ? (Platform.OS === 'android' ? c.fill : c.dark ? '#3A3A3C' : '#D1D1D6') : (color ?? c.accent);
+  const bg = disabled ? disabledFill(c) : (color ?? c.accent);
   return (
     <Pressable
       disabled={disabled || loading}
@@ -71,7 +71,7 @@ export function PrimaryButton({ label, onPress, disabled, loading, color, style 
       {loading ? (
         <ActivityIndicator color={c.onAccent} />
       ) : (
-        <T style_="headline" color={disabled ? c.secondary : color ? '#FFFFFF' : c.onAccent} style={{ fontSize: 18 }}>
+        <T style_="headline" color={disabled ? c.secondary : color ? onFill(c, color) : c.onAccent} style={{ fontSize: 18 }}>
           {label}
         </T>
       )}

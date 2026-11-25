@@ -10,13 +10,17 @@ import { nameProblem, useProfileList, useProfiles } from '@/features/settings/pr
 const PROFILES_HINT = {
   label: 'Therapy Profiles',
   lines: [
-    'A profile holds basal rates, carb ratios, insulin sensitivities and glucose targets. Trio always uses the active profile, and editing the therapy settings edits the active profile.',
+    'A profile holds basal rates, carb ratios, insulin sensitivities and glucose targets. Buddy always uses the active profile, and editing the therapy settings edits the active profile.',
     "Activating a profile makes Trio use its basal rates, carb ratios, insulin sensitivities and glucose targets from the next loop cycle on.",
     'Overrides and temporary targets are not part of a profile. One that is running stays on and applies on top of the newly active profile.',
   ],
 };
 
-/** Port of TherapyProfiles.RootView (without scheduled switches) plus Buddy's Nightscout import. */
+/**
+ * Named therapy profiles with manual activation, plus Buddy's Nightscout import. Trio dev has no
+ * named or scheduled profiles at all (one set of therapy editors), so this screen is a Buddy
+ * extension and deliberately has no automatic time-based switching.
+ */
 export default function TherapyProfiles() {
   return (
     <SettingsScreen title="Therapy Profiles">

@@ -177,6 +177,8 @@ export interface InsulinStats {
   readonly basal: number;
   readonly bolus: number;
   readonly smb: number;
+  /** Insulin logged by hand outside the pump (Trio's external insulin); part of the total. */
+  readonly external: number;
   /** Basal share of the total, %; `null` when nothing was delivered. */
   readonly basalPercent: number | null;
 }
@@ -216,7 +218,8 @@ export function insulinStats(doses: readonly InsulinDose[], profile: TherapyProf
   if (!(to > from)) throw new RangeError('insulinStats: `to` must be after `from`');
   const days = (to - from) / DAY;
   const inWindow = (d: InsulinDose) => d.date >= from && d.date < to;
-  const bolus = sum(doses.filter((d) => d.kind === 'bolus' && inWindow(d)).map((d) => (d.kind === 'bolus' ? d.units : 0)));
+  const bolus = sum(doses.filter((d) => d.kind === 'bolus' && !d.external && inWindow(d)).map((d) => (d.kind === 'bolus' ? d.units : 0)));
+  const external = sum(doses.filter((d) => d.kind === 'bolus' && d.external && inWindow(d)).map((d) => (d.kind === 'bolus' ? d.units : 0)));
   const smb = sum(doses.filter((d) => d.kind === 'smb' && inWindow(d)).map((d) => (d.kind === 'smb' ? d.units : 0)));
 
   const basalEvents = doses.filter((d) => d.kind === 'tempBasal' || d.kind === 'suspend');
@@ -224,13 +227,14 @@ export function insulinStats(doses: readonly InsulinDose[], profile: TherapyProf
   const overridden = sum(overriddenIntervals(basalEvents, from, to).map(([a, b]) => scheduledBasal(profile, a, b)));
   const basal = tempDelivered + scheduledBasal(profile, from, to) - overridden;
 
-  const total = basal + bolus + smb;
+  const total = basal + bolus + smb + external;
   return {
     days,
     totalDaily: total / days,
     basal: basal / days,
     bolus: bolus / days,
     smb: smb / days,
+    external: external / days,
     basalPercent: total > 0 ? (100 * basal) / total : null,
   };
 }

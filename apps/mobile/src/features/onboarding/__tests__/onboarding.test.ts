@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { DEFAULT_LIMITS, DEFAULT_PROFILE } from '@buddy/core';
 import {
   DEFAULT_DRAFT,
+  scheduleStepIncomplete,
   PICKERS,
   PUMP_MODELS,
   addItem,
@@ -196,5 +197,27 @@ describe('nightscout', () => {
   test('rejects invalid schedules like Trio', () => {
     expect(() => importTherapy(profile('mg/dl', { basal: [{ time: '00:00', value: 0 }] }), PUMP_MODELS[0]!)).toThrow(/basal rates/);
     expect(() => importTherapy(profile('mg/dl', { carbratio: [{ time: '00:00', value: 0 }] }), PUMP_MODELS[0]!)).toThrow(/Carb Ratio/);
+  });
+});
+
+describe('onboarding never saves an empty therapy schedule', () => {
+  test('keeps the existing schedule when the user removed every entry', () => {
+    // Arrange: the user deleted all basal and ISF entries before finishing.
+    const draft = { ...DEFAULT_DRAFT, basal: [], isf: [], carbRatios: [], targets: [] };
+
+    // Act
+    const r = buildSettings(draft, { profile: DEFAULT_PROFILE, limits: DEFAULT_LIMITS, orefSettings: {} });
+
+    // Assert: the loop needs non-empty schedules, so the previous ones stay.
+    expect(r.profile.basal).toEqual(DEFAULT_PROFILE.basal);
+    expect(r.profile.isf).toEqual(DEFAULT_PROFILE.isf);
+    expect(r.profile.carbRatio).toEqual(DEFAULT_PROFILE.carbRatio);
+    expect(r.profile.target).toEqual(DEFAULT_PROFILE.target);
+  });
+
+  test('blocks Next on a therapy step whose schedule is empty', () => {
+    expect(scheduleStepIncomplete('basalRates', { ...DEFAULT_DRAFT, basal: [] })).toBe(true);
+    expect(scheduleStepIncomplete('basalRates', DEFAULT_DRAFT)).toBe(DEFAULT_DRAFT.basal.length === 0);
+    expect(scheduleStepIncomplete('welcome', { ...DEFAULT_DRAFT, basal: [] })).toBe(false);
   });
 });

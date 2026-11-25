@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from '@/trio/symbol';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { MINUTE } from '@buddy/core';
 import { fmtTime } from '@/features/format';
 import { useSnapshot } from '@/runtime/hooks';
@@ -74,7 +74,7 @@ export default function LoopStatusSheet() {
         ) : !lastOk ? (
           <T style={{ fontSize: 17 }}>No recent oref algorithm determination.</T>
         ) : null}
-        <Pressable onPress={() => router.back()} accessibilityRole="button" style={({ pressed }) => [styles.got, { backgroundColor: c.dark ? '#1C2A4A' : '#E5E8F5', opacity: pressed ? 0.7 : 1 }]}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" style={({ pressed }) => [styles.got, { backgroundColor: Platform.OS === 'android' ? c.fill : c.dark ? '#1C2A4A' : '#E5E8F5', opacity: pressed ? 0.7 : 1 }]}>
           <T weight="700" color={c.tabBar}>
             Got it!
           </T>

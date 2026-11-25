@@ -6,6 +6,7 @@ const demoCgm = { id: 'demo-cgm', name: 'Demo CGM', maturity: 'simulator' as con
 const medtrum = { id: 'medtrum-nano', name: 'Medtrum Nano', maturity: 'experimental' as const, requiresHardwareCheck: true };
 const dexcom = { id: 'dexcom-g7', name: 'Dexcom G7', maturity: 'experimental' as const };
 const follower = { id: 'nightscout-follower', name: 'Follower', maturity: 'stable' as const, readOnly: true };
+const libreLinkUp = { id: 'libre-link-up', name: 'LibreLinkUp', maturity: 'experimental' as const, transport: 'network' as const };
 
 describe('closedLoopBlockReason', () => {
   it('allows the demo pump with the demo CGM', () => {
@@ -32,5 +33,11 @@ describe('closedLoopBlockReason', () => {
   it('blocks an experimental pump until its hardware check is done', () => {
     expect(closedLoopBlockReason(medtrum, dexcom, {})).toMatch(/hardware check/);
     expect(closedLoopBlockReason(medtrum, dexcom, { 'medtrum-nano': 1 })).toBeNull();
+  });
+
+  it('blocks a delayed cloud CGM until its use for closed loop is acknowledged', () => {
+    const pumpChecked = { 'medtrum-nano': 1 };
+    expect(closedLoopBlockReason(medtrum, libreLinkUp, pumpChecked)).toMatch(/cloud/i);
+    expect(closedLoopBlockReason(medtrum, libreLinkUp, { ...pumpChecked, 'libre-link-up': 1 })).toBeNull();
   });
 });

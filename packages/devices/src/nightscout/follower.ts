@@ -38,17 +38,28 @@ const time = (t: Json): number | undefined => {
 };
 const idOf = (t: Json, prefix: string, date: number) => `${prefix}-${String(t._id ?? t.id ?? date)}`;
 
+/**
+ * `enteredBy` marker of Buddy's own Nightscout uploads. Duplicated from `ENTERED_BY` in
+ * `packages/nightscout/src/format.ts` (@buddy/devices does not depend on @buddy/nightscout).
+ * Treatments carrying it are already in Buddy's local history, so re-importing them would double count.
+ */
+const BUDDY_ENTERED_BY = 'Buddy';
+const isOwnUpload = (t: Json): boolean => t.enteredBy === BUDDY_ENTERED_BY;
+
 /** Converts Nightscout treatments (as uploaded by Trio/Loop/AAPS) into delivered doses. */
 export function parseTreatmentsToDoses(body: unknown): InsulinDose[] {
   if (!Array.isArray(body)) throw new Error('Nightscout returned an unexpected treatments response');
   return body.flatMap((raw): InsulinDose[] => {
     const t = raw as Json;
+    if (isOwnUpload(t)) return [];
     const date = time(t);
     if (date === undefined) return [];
     const type = String(t.eventType ?? '');
     const insulin = num(t.insulin);
     if (insulin !== undefined && insulin > 0 && insulin < 30) {
       const smb = type === 'SMB' || t.isSMB === true || t.type === 'SMB';
+      // Trio uploads pen/syringe insulin as "External Insulin": it counts for IOB but was not pump-delivered.
+      if (type === 'External Insulin') return [{ kind: 'bolus', id: idOf(t, 'ns-bolus', date), date, units: insulin, external: true }];
       return [{ kind: smb ? 'smb' : 'bolus', id: idOf(t, 'ns-bolus', date), date, units: insulin }];
     }
     if (type === 'Temp Basal') {
@@ -69,6 +80,7 @@ export function parseTreatmentsToCarbs(body: unknown): CarbEntry[] {
   if (!Array.isArray(body)) return [];
   return body.flatMap((raw): CarbEntry[] => {
     const t = raw as Json;
+    if (isOwnUpload(t)) return [];
     const date = time(t);
     const grams = num(t.carbs);
     if (date === undefined || grams === undefined || grams <= 0 || grams > 300) return [];

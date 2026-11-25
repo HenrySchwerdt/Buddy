@@ -1,6 +1,6 @@
 import type { DeviceMeta } from '@buddy/core';
 
-type GateMeta = Pick<DeviceMeta, 'id' | 'name' | 'maturity'> & { readonly readOnly?: boolean; readonly requiresHardwareCheck?: boolean };
+type GateMeta = Pick<DeviceMeta, 'id' | 'name' | 'maturity'> & { readonly readOnly?: boolean; readonly requiresHardwareCheck?: boolean; readonly transport?: DeviceMeta['transport'] };
 
 /**
  * Why closed loop must stay off for this device pairing, or null when it may run.
@@ -13,6 +13,8 @@ export function closedLoopBlockReason(pump: GateMeta | undefined, cgm: GateMeta 
   const cgmSimulated = cgm.maturity === 'simulator';
   if (pumpSimulated && !cgmSimulated) return 'Closed loop needs pump and CGM from the same world: a demo pump cannot dose against real glucose.';
   if (!pumpSimulated && cgmSimulated) return 'Closed loop needs pump and CGM from the same world: a real pump must never dose against simulated glucose.';
+  if (cgm.transport === 'network' && !hardwareChecks[cgm.id])
+    return `${cgm.name} follows glucose from the cloud with a delay. Acknowledge this in its CGM settings to enable closed loop.`;
   if (pump.requiresHardwareCheck && !hardwareChecks[pump.id])
     return `${pump.name} is an experimental driver. Complete the hardware check (pump not attached to your body) to enable closed loop.`;
   return null;

@@ -1,4 +1,4 @@
-import { ActionSheetIOS, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActionSheetIOS, Alert, type AlertButton, type AlertOptions, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { create } from 'zustand';
 import { useTrioColors } from './colors';
 import { SymbolView } from './symbol';
@@ -24,7 +24,25 @@ interface Request {
   readonly resolve: (index: number | null) => void;
 }
 
-const useChoice = create<{ request: Request | null }>(() => ({ request: null }));
+const useChoice = create<{ request: Request | null; alert: AlertRequest | null }>(() => ({ request: null, alert: null }));
+
+interface AlertRequest {
+  readonly title: string;
+  readonly message?: string;
+  readonly buttons: readonly AlertButton[];
+  readonly cancelable: boolean;
+}
+
+/*
+ * Android: `Alert.alert` draws a legacy (teal, non-Material) dialog. Route it through the Material
+ * dialog below so every confirmation in the app matches; iOS keeps the native UIAlertController.
+ */
+if (Platform.OS === 'android') {
+  Alert.alert = (title: string, message?: string, buttons?: AlertButton[], options?: AlertOptions) => {
+    const list = buttons && buttons.length > 0 ? buttons : [{ text: 'OK' }];
+    useChoice.setState({ alert: { title, message, buttons: list, cancelable: options?.cancelable ?? list.some((b) => b.style === 'cancel') } });
+  };
+}
 
 /** Asks the user to pick one item; resolves its index, or null when cancelled. */
 export function choose(opts: Omit<Request, 'resolve'>): Promise<number | null> {
@@ -52,9 +70,59 @@ export function chooseValue<V>(title: string, options: readonly { value: V; labe
 
 /** Mounted once at the root; renders the Android dialog. */
 export function ChoiceDialogHost() {
+  if (Platform.OS === 'ios') return null;
+  return (
+    <>
+      <ChoiceDialog />
+      <AlertDialog />
+    </>
+  );
+}
+
+function AlertDialog() {
+  const c = useTrioColors();
+  const alert = useChoice((s) => s.alert);
+  if (!alert) return null;
+  const close = (button?: AlertButton) => {
+    useChoice.setState({ alert: null });
+    button?.onPress?.();
+  };
+  const dismiss = () => {
+    if (alert.cancelable) close(alert.buttons.find((b) => b.style === 'cancel'));
+  };
+  return (
+    <Modal transparent animationType="fade" statusBarTranslucent onRequestClose={dismiss}>
+      <Pressable style={styles.scrim} onPress={dismiss} accessibilityLabel="Dismiss">
+        <Pressable style={[styles.dialog, { backgroundColor: c.dark ? '#29292F' : '#EAE7EF' }]} onPress={() => {}}>
+          <T style={styles.title} accessibilityRole="header">
+            {alert.title}
+          </T>
+          {alert.message ? (
+            <ScrollView style={{ maxHeight: 360 }}>
+              <T style_="subheadline" secondary style={styles.message}>
+                {alert.message}
+              </T>
+            </ScrollView>
+          ) : null}
+          <View style={[styles.actions, { flexWrap: 'wrap' }]}>
+            {alert.buttons.map((b, i) => (
+              <Pressable key={`${b.text}${i}`} onPress={() => close(b)} android_ripple={{ color: c.fill }} accessibilityRole="button" style={styles.cancel}>
+                <T color={b.style === 'destructive' ? c.red : c.accent} style={{ fontWeight: '500' }}>
+                  {b.text}
+                </T>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function ChoiceDialog() {
   const c = useTrioColors();
   const request = useChoice((s) => s.request);
-  if (Platform.OS === 'ios' || !request) return null;
+  if (!request) return null;
   const close = (index: number | null) => {
     useChoice.setState({ request: null });
     request.resolve(index);

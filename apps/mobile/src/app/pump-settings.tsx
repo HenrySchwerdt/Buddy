@@ -11,6 +11,7 @@ import { deleteDevice, deviceErrors, errorText, saveDeviceValues, useActiveDevic
 import { HardwareCheck } from '@/features/devices/hardware-check';
 import { MedtrumPatchFlow } from '@/features/devices/medtrum-patch-flow';
 import { PluginForm } from '@/features/devices/plugin-form';
+import { upTo3 } from '@/features/history/rows';
 import { PumpStatusCard, type PumpLife } from '@/features/devices/pump-status-card';
 import { TempBasalEntry } from '@/features/devices/temp-basal-entry';
 
@@ -151,8 +152,7 @@ function MainPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
   return (
     <SheetScreen
       title=""
-      trailing={<CapsuleButton label="Done" onPress={() => router.back()} />}
-      footer={<PrimaryButton label="Delete Pump" color={c.red} onPress={confirmDelete} style={{ height: 44, borderRadius: 10 }} />}>
+      trailing={<CapsuleButton label="Done" onPress={() => router.back()} />}>
       <PumpStatusCard entry={entry} state={pump} life={life} nowMs={nowMs} />
 
       {plugin.meta.maturity === 'simulator' ? (
@@ -206,10 +206,10 @@ function MainPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
         {plugin.meta.maturity !== 'simulator' ? <NavRow label="Pump Settings" onPress={() => onNavigate('device')} /> : null}
         {plugin.meta.id === 'medtrum-nano' ? <NavRow label="Patch" onPress={() => onNavigate('patch')} /> : null}
         {plugin.meta.requiresHardwareCheck ? <NavRow label="Hardware Check" value={hwDone ? 'Completed' : 'Required'} onPress={() => onNavigate('hardware')} /> : null}
-        <ValueRow label="Current Basal Rate" value={`${(temp ? temp.rate : scheduled).toFixed(2)} U/h`} />
+        <ValueRow label="Current Basal Rate" value={`${upTo3(temp ? temp.rate : scheduled)} U/hr`} />
         <ValueRow label="Last Sync" value={pump ? new Date(pump.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'} />
       </Section>
-      <View style={{ height: 8 }} />
+      <PrimaryButton label="Delete Pump" color={c.red} onPress={confirmDelete} style={{ height: 44, borderRadius: 10 }} />
     </SheetScreen>
   );
 }

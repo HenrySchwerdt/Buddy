@@ -225,18 +225,31 @@ export interface SettingsResult {
   readonly orefSettings: SettingsValues;
 }
 
+const SCHEDULE_STEPS = { glucoseTarget: 'targets', basalRates: 'basal', carbRatio: 'carbRatios', insulinSensitivity: 'isf' } as const;
+
+/** A therapy step whose schedule has no entries: Next stays disabled until one is added. */
+export function scheduleStepIncomplete(step: string, d: OnboardingDraft): boolean {
+  const key = SCHEDULE_STEPS[step as keyof typeof SCHEDULE_STEPS];
+  return key !== undefined && d[key].length === 0;
+}
+
 /**
  * `saveOnboardingData()` mapped onto Buddy: schedules → profile, delivery limits → SafetyLimits,
  * preferences → oref-smb algorithm settings. Keys the oref adapter does not read yet are stored
  * under Trio's preference names so nothing the user chose is lost.
  */
 export function buildSettings(d: OnboardingDraft, current: { profile: TherapyProfile; limits: SafetyLimits; orefSettings: SettingsValues }): SettingsResult {
+  // The loop cannot run on an empty schedule, so an emptied editor keeps the previous schedule.
+  const keep = <T,>(next: readonly T[], previous: readonly T[]) => (next.length > 0 ? next : previous);
   const profile: TherapyProfile = {
     ...current.profile,
-    basal: toSchedule(d.basal),
-    carbRatio: toSchedule(d.carbRatios),
-    isf: toSchedule(d.isf),
-    target: toSchedule(d.targets).map((e) => ({ startMinute: e.startMinute, value: { low: e.value, high: e.value } })),
+    basal: keep(toSchedule(d.basal), current.profile.basal),
+    carbRatio: keep(toSchedule(d.carbRatios), current.profile.carbRatio),
+    isf: keep(toSchedule(d.isf), current.profile.isf),
+    target: keep(
+      toSchedule(d.targets).map((e) => ({ startMinute: e.startMinute, value: { low: e.value, high: e.value } })),
+      current.profile.target,
+    ),
     diaHours: ONBOARDING_DIA_HOURS,
   };
   const limits: SafetyLimits = {

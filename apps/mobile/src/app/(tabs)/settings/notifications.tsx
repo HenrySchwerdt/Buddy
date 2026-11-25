@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { SymbolView } from '@/trio/symbol';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Linking, View } from 'react-native';
+import { Alert, Linking, Platform, View } from 'react-native';
 import { SnoozeAlertsSheet } from '@/features/settings-b/snooze-sheet';
 import { BorderedButton, ButtonCard, UnavailableRow } from '@/features/settings-b/ui';
 import { useNotificationsEnabled } from '@/features/settings-b/use-notification-permission';
@@ -19,8 +19,10 @@ export default function NotificationsScreen() {
     if (enabled !== false || warned.current) return;
     warned.current = true;
     Alert.alert(
-      '❗ Notifications are Required',
-      `Please authorize notifications by tapping 'Open ${SYSTEM_SETTINGS}' > 'Notifications' and enable 'Allow Notifications' for 'Notification Center' and 'Banners' Alerts.`,
+      Platform.OS === 'android' ? 'Notifications are Required' : '❗ Notifications are Required',
+      Platform.OS === 'android'
+        ? "Please allow notifications for Buddy: tap 'Open Android Settings' > 'Notifications' and turn on 'All Buddy notifications'."
+        : `Please authorize notifications by tapping 'Open ${SYSTEM_SETTINGS}' > 'Notifications' and enable 'Allow Notifications' for 'Notification Center' and 'Banners' Alerts.`,
       [{ text: 'Ok' }],
     );
   }, [enabled]);
@@ -37,7 +39,7 @@ export default function NotificationsScreen() {
         </ButtonCard>
       </Section>
 
-      <Section header="Manage iOS Preferences">
+      <Section header={Platform.OS === 'android' ? 'Manage Android Preferences' : 'Manage iOS Preferences'}>
         <Row accessibilityLabel={`Notifications, ${enabled === false ? 'Off' : 'On'}`}>
           <T style={{ flex: 1 }}>Notifications</T>
           {enabled === false ? (

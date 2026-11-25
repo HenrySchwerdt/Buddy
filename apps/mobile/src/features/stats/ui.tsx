@@ -2,7 +2,7 @@ import { chooseValue } from '@/trio/choice-dialog';
 import * as Haptics from 'expo-haptics';
 import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import type { PropsWithChildren, ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { T, useTrioColors } from '@/trio';
 import { SYS } from './format';
 
@@ -27,7 +27,7 @@ export function ChartTypeRow<V extends string>({ value, options, onChange, title
         <T color={c.accent} align="right" style={{ flexShrink: 1 }}>
           {current}
         </T>
-        <SymbolView name="chevron.up.chevron.down" size={13} tintColor={c.accent} weight="semibold" />
+        {Platform.OS === 'android' ? <SymbolView name={{ android: 'arrow_drop_down' }} size={24} tintColor={c.accent} /> : <SymbolView name="chevron.up.chevron.down" size={13} tintColor={c.accent} weight="semibold" />}
       </Pressable>
     </View>
   );

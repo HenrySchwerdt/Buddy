@@ -146,10 +146,13 @@ function SheetHeader({ title, leading, trailing }: { title: string; leading?: Re
   }
   return (
     <View style={[styles.toolbar, { marginTop: 12 }]}>
+      <View style={styles.centerTitle} pointerEvents="none">
+        <T style_="headline" style={[styles.sheetTitle, { fontSize: 19 }]} numberOfLines={1} accessibilityRole="header">
+          {title}
+        </T>
+      </View>
       <View style={styles.side}>{leading}</View>
-      <T style_="headline" style={[styles.inlineTitle, { fontSize: 19 }]} numberOfLines={1}>
-        {title}
-      </T>
+      <View style={{ flex: 1 }} />
       <View style={[styles.side, { alignItems: 'flex-end' }]}>{trailing}</View>
     </View>
   );
@@ -161,4 +164,6 @@ const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 },
   side: { minWidth: 44, maxWidth: '45%' },
   inlineTitle: { flex: 1, textAlign: 'center' },
+  sheetTitle: { textAlign: 'center' },
+  centerTitle: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, paddingHorizontal: 96, justifyContent: 'center' },
 });

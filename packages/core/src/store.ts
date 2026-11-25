@@ -27,6 +27,32 @@ export const EMPTY_SNAPSHOT: DataSnapshot = { glucose: [], doses: [], carbs: [],
 
 const MAX_LOOP_RUNS = 600;
 
+/** Id prefix of the manual insulin doses written before external insulin had its own flag. */
+const LEGACY_EXTERNAL_PREFIX = 'ext-';
+
+/**
+ * Upgrades a persisted snapshot to the current shape: boluses created by the old "External Insulin"
+ * checkbox (id `ext-…`) become proper external doses. Returns the same object when nothing changes.
+ */
+export function migrateSnapshot(snapshot: DataSnapshot): DataSnapshot {
+  const legacy = (d: InsulinDose) => d.kind === 'bolus' && d.external !== true && d.id.startsWith(LEGACY_EXTERNAL_PREFIX);
+  if (!snapshot.doses.some(legacy)) return snapshot;
+  return { ...snapshot, doses: snapshot.doses.map((d) => (legacy(d) ? { ...d, external: true } : d)) };
+}
+
+function isFiniteDose(d: InsulinDose): boolean {
+  if (!Number.isFinite(d.date)) return false;
+  switch (d.kind) {
+    case 'bolus':
+    case 'smb':
+      return Number.isFinite(d.units);
+    case 'tempBasal':
+      return Number.isFinite(d.rate) && Number.isFinite(d.durationMin);
+    case 'suspend':
+      return Number.isFinite(d.durationMin);
+  }
+}
+
 function mergeBy<T>(existing: readonly T[], incoming: readonly T[], key: (t: T) => string, date: (t: T) => number): readonly T[] {
   if (incoming.length === 0) return existing;
   const seen = new Set(existing.map(key));
@@ -71,7 +97,10 @@ export function createMemoryStore(initial: DataSnapshot = EMPTY_SNAPSHOT): DataS
     snapshot: () => state,
     addGlucose: (r) => set({ ...state, glucose: mergeBy(state.glucose, r, (g) => `${g.source}:${g.date}`, (g) => g.date) }),
     addDoses: (d) => {
-      const doses = upsertDoses(state.doses, d);
+      // A non-finite date or amount would turn IOB into NaN for the whole loop: never store one.
+      const valid = d.filter(isFiniteDose);
+      if (valid.length === 0) return;
+      const doses = upsertDoses(state.doses, valid);
       if (doses !== state.doses) set({ ...state, doses });
     },
     addCarbs: (c) => set({ ...state, carbs: mergeBy(state.carbs, [c], (x) => x.id, (x) => x.date) }),

@@ -2,6 +2,7 @@ import { SymbolView } from '@/trio/symbol';
 import { StyleSheet, View } from 'react-native';
 import type { PumpState } from '@buddy/core';
 import { T, useTrioColors } from '@/trio';
+import { upTo3 } from '@/features/history/rows';
 import type { CatalogEntry } from './catalog';
 import { DeviceIcon } from './device-icon';
 
@@ -69,7 +70,7 @@ export function PumpStatusCard({ entry, state, life, nowMs }: { entry: CatalogEn
                   <SymbolView name={temp ? 'arrow.up.right' : 'arrow.right'} size={22} tintColor="#000" weight="semibold" />
                 </View>
                 <T style_="callout" weight="800" style={{ flex: 1 }}>
-                  {temp ? `Temp Basal\n${temp.rate} U/h` : 'Scheduled\nBasal'}
+                  {temp ? `Temp Basal\n${upTo3(temp.rate)} U/hr` : 'Scheduled\nBasal'}
                 </T>
               </View>
               <T style_="footnote" color={c.tabBar}>

@@ -16,7 +16,7 @@ export const myAlgo = defineAlgorithm({
     id: 'my-algo',                      // kebab-case, unique
     name: 'My algorithm',
     shortName: 'Mine',
-    description: 'One sentence users will see in Settings and the Lab.',
+    description: 'One sentence users will see in Settings.',
     version: '0.1.0',
     author: 'you',
     maturity: 'experimental',           // hidden unless developer mode is on
@@ -57,7 +57,18 @@ pnpm test                         # conformance + cohort guardrails for all algo
 pnpm sim --algo my-algo           # benchmark on the virtual cohort
 ```
 
-Then open the **Lab** tab in the app to compare it visually against oref and the others.
+`pnpm sim` prints TIR / TBR / TAR, CV, GMI, LBGI/HBGI and insulin per scenario for every
+algorithm, so you can compare against oref and the others (there is no Lab screen in the app).
+
+Run all tests with `npx vitest run` from the repo root. After changing algorithm settings
+schemas, also run `cd apps/mobile && npx tsc --noEmit`.
+
+If your algorithm should appear under Trio's Algorithm settings screens (Autosens, SMB,
+Target Behavior, ...), those screens are bound to the oref plugins' keys
+(`useOrefValues` in `apps/mobile/src/features/settings/bindings.ts`); other plugins use the
+generic schema form. Help texts that state defaults live in
+`apps/mobile/src/features/settings/trio-copy.ts` and are checked against the code constants by
+`features/settings/__tests__/trio-copy-defaults.test.ts`, so update both when you change a default.
 
 ## Rules
 

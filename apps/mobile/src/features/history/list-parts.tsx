@@ -3,7 +3,7 @@ import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useRef, type PropsWithChildren } from 'react';
 import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { T, useTrioColors } from '@/trio';
+import { T, disabledFill, onFill, useTrioColors } from '@/trio';
 
 const ACTION_W = 74;
 
@@ -38,8 +38,8 @@ export function SwipeRow({ actions, children }: PropsWithChildren<{ actions: rea
                 ref.current?.close();
                 a.onPress();
               }}
-              style={({ pressed }) => [styles.action, { backgroundColor: a.disabled ? (c.dark ? '#3A3A3C' : '#D1D1D6') : a.color, opacity: pressed ? 0.8 : 1 }]}>
-              <SymbolView name={a.icon} size={20} tintColor="#FFFFFF" />
+              style={({ pressed }) => [styles.action, { backgroundColor: a.disabled ? disabledFill(c) : a.color, opacity: pressed ? 0.8 : 1 }]}>
+              <SymbolView name={a.icon} size={20} tintColor={onFill(c, a.color)} />
             </Pressable>
           ))}
         </View>

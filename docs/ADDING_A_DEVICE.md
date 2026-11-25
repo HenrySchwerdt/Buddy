@@ -26,7 +26,7 @@ export const myCgm = defineCgm({
 });
 ```
 
-Register it in `BUILT_IN_CGMS` (`packages/devices/src/index.ts`). Use `ctx.fetch` and
+Register it in `BUILT_IN_CGMS` (`packages/devices/src/index.ts`); pumps go in `BUILT_IN_PUMPS`. Use `ctx.fetch` and
 `ctx.clock` (never globals) so the driver is testable; see `packages/devices/test`.
 Reject implausible values (`isPlausibleGlucose`).
 
@@ -48,3 +48,23 @@ until the driver has been bench-verified.
 Before a driver can be marked `stable` it needs: a protocol simulator for unit tests, the
 `PumpDriver` contract tests, fault-injection tests (lost connection mid-bolus, unconfirmed
 commands) and long-running bench testing on hardware that is not attached to a person.
+
+## Closed-loop gate
+
+A new pump never doses on its own. `closedLoopBlockReason`
+(`apps/mobile/src/runtime/closed-loop-gate.ts`) keeps the loop open when:
+
+- the pump is `meta.readOnly` (shadow mode);
+- pump and CGM are not from the same world (`maturity: 'simulator'` with a real device, either way);
+- the pump has `requiresHardwareCheck: true` and the in-app hardware check has not been completed.
+
+Set `requiresHardwareCheck: true` for every driver that has not been bench-verified, and
+set `maturity: 'simulator'` only for virtual devices. Add cases to
+`apps/mobile/src/runtime/__tests__/closed-loop-gate.test.ts` if you add a new gating rule.
+All bundled hardware drivers are experimental and verified against protocol simulators only.
+
+## Testing
+
+`npx vitest run` from the repo root runs the driver and contract tests; the device screens
+live in `apps/mobile/src/features/devices` and `apps/mobile/src/app/add-pump.tsx` /
+`add-cgm.tsx`.

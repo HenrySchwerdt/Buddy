@@ -9,16 +9,16 @@ export const TRIO_COPY = {
     "label": "Maximum Insulin on Board (IOB)",
     "miniHint": "Maximum units of insulin allowed to be active.",
     "hint": [
-      "**Default: 0 units",
-      "!!Note: This setting must be greater than 0 for any automatic insulin dosing by Trio (unless you currently have negative IOB).",
-      "Choose a value that covers your highest insulin needs — think about a correction for a very high glucose reading plus your biggest meal bolus. This gives Trio room to work while keeping you safe.",
-      "Max IOB sets a safety limit on how much insulin Trio can automatically deliver above your scheduled basal rates. This prevents the system from giving too much insulin at once.",
-      "Trio calculates your current Insulin On Board (IOB) from:",
+      "**Default: 6 units",
+      "!!Note: This setting must be greater than 0 for any automatic insulin dosing by Buddy (unless you currently have negative IOB).",
+      "Choose a value that covers your highest insulin needs — think about a correction for a very high glucose reading plus your biggest meal bolus. This gives Buddy room to work while keeping you safe.",
+      "Max IOB sets a safety limit on how much insulin Buddy can automatically deliver above your scheduled basal rates. This prevents the system from giving too much insulin at once.",
+      "Buddy calculates your current Insulin On Board (IOB) from:",
       "• Boluses (including SMBs)",
       "• Temporary Basal Rates (TBRs)",
       "  ◦ A TBR higher than your scheduled rate will increase IOB",
       "  ◦ A TBR lower than your scheduled rate will decrease IOB",
-      "If delivering more insulin would push your IOB above this limit, Trio will reduce or skip the dose to stay within the safety boundary. This applies to SMBs, TBRs, and the recommendation from the bolus calculator.",
+      "If delivering more insulin would push your IOB above this limit, Buddy will reduce or skip the dose to stay within the safety boundary. This applies to SMBs, TBRs, and the recommendation from the bolus calculator.",
       "What's NOT limited:",
       "• Manual boluses you enter yourself",
       "• Manual temporary basal rates you set yourself"
@@ -29,7 +29,7 @@ export const TRIO_COPY = {
     "miniHint": "Largest bolus of insulin allowed.",
     "hint": [
       "**Default: 10 units",
-      "This is the maximum bolus allowed to be delivered at one time. This only limits manual boluses and does not limit SMBs.",
+      "This is the maximum bolus allowed to be delivered at one time. This limits manual boluses, and Buddy also never lets an automatic bolus (SMB) exceed it.",
       "Most set this to their largest meal bolus. Then, adjust if needed.",
       "If you attempt to request a bolus larger than this, the bolus will not be accepted."
     ]
@@ -38,7 +38,7 @@ export const TRIO_COPY = {
     "label": "Maximum Basal Rate",
     "miniHint": "Largest basal rate allowed.",
     "hint": [
-      "**Default: 2 U/hr",
+      "**Default: 3 U/hr",
       "This is the maximum basal rate allowed to be set or scheduled. This applies to both automatic and manual basal rates."
     ]
   },
@@ -47,7 +47,7 @@ export const TRIO_COPY = {
     "miniHint": "Maximum amount of active carbs considered by the algorithm.",
     "hint": [
       "**Default: 120 grams of carbs",
-      "This setting defines the maximum amount of Carbs On Board (COB) at any given time for Trio to use in dosing calculations. If more carbs are entered than allowed by this limit, Trio will cap the current COB in calculations to Max COB and remain at max until all remaining carbs have shown to be absorbed.",
+      "This setting defines the maximum amount of Carbs On Board (COB) at any given time for Buddy to use in dosing calculations. If more carbs are entered than allowed by this limit, Buddy will cap the current COB in calculations to Max COB and remain at max until all remaining carbs have shown to be absorbed.",
       "For example, if Max COB is 120 g and you enter a meal containing 150 g of carbs, your COB will remain at 120 g until the remaining 30 g have been absorbed.",
       "This is an important limit when UAM is ON."
     ]
@@ -56,12 +56,12 @@ export const TRIO_COPY = {
     "label": "Minimum Safety Threshold",
     "miniHint": "Increase the safety threshold used to suspend insulin delivery.",
     "hint": [
-      "**Default: Set by Algorithm",
+      "**Default: {g:65} {unit}",
       "Minimum Threshold Setting is, by default, determined by your set Glucose Target. This threshold automatically suspends insulin delivery if your glucose levels are forecasted to fall below this value. It’s designed to protect against hypoglycemia, particularly during sleep or other vulnerable times.",
-      "Trio will use the larger of the default setting calculation below and the value entered here.",
+      "Buddy will use the larger of the default setting calculation below and the value entered here.",
       "**The default setting is based on this calculation:",
       "TargetGlucose - 0.5 × (TargetGlucose - 40)",
-      "If your glucose target is {g:110} {unit}, Trio will use a safety threshold of {g:75} {unit}, unless you set Minimum Safety Threshold to something > {g:75} {unit}.",
+      "If your glucose target is {g:110} {unit}, Buddy will use a safety threshold of {g:75} {unit}, unless you set Minimum Safety Threshold to something > {g:75} {unit}.",
       "{g:110} - 0.5 × ({g:110} - {g:40}) = {g:75}",
       "This setting is limited to values between {g:60} - {g:120} {unit}",
       "Note: Basal may be resumed if there is negative IOB and glucose is rising faster than the forecast."
@@ -92,7 +92,8 @@ export const TRIO_COPY = {
     "label": "Rewind Resets Autosens",
     "miniHint": "Pump rewind initiates a reset in Sensitivity Ratio.",
     "hint": [
-      "**Default: ON",
+      "**Default: OFF",
+      "Note: Buddy does not reset Autosens on a pump rewind yet. This setting is fixed to OFF and has no effect.",
       "**Medtronic and Dana Users Only",
       "This feature resets the Sensitivity Ratio to neutral when you rewind your pump on the assumption that this corresponds to a site change.",
       "Autosens will begin learning sensitivity anew from the time of the rewind, which may take up to 6 hours.",
@@ -113,8 +114,8 @@ export const TRIO_COPY = {
     "label": "Enable SMB With COB",
     "miniHint": "Allow SMB when carbs are on board.",
     "hint": [
-      "**Default: OFF",
-      "When there are carbs on board (COB > 0), enabling this feature allows Trio to use Super Micro Boluses (SMB) to deliver the insulin required.",
+      "**Default: ON",
+      "When there are carbs on board (COB > 0), enabling this feature allows Buddy to use Super Micro Boluses (SMB) to deliver the insulin required.",
       "Note: If this is enabled and the criteria are met, SMBs could be utilized regardless of other SMB settings being enabled or not."
     ]
   },
@@ -123,7 +124,7 @@ export const TRIO_COPY = {
     "miniHint": "Allow SMB when a manual Temporary Target is set under {g:100} {unit}.",
     "hint": [
       "**Default: OFF",
-      "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) at times when a manual Temporary Target under {g:100} {unit} is set.",
+      "Enabling this feature allows Buddy to deliver insulin required using Super Micro Boluses (SMB) at times when a manual Temporary Target under {g:100} {unit} is set.",
       "Note: If this is enabled and the criteria are met, SMBs could be utilized regardless of other SMB settings being enabled or not."
     ]
   },
@@ -131,8 +132,8 @@ export const TRIO_COPY = {
     "label": "Enable SMB After Carbs",
     "miniHint": "Allow SMB for 6 hrs after a carb entry.",
     "hint": [
-      "**Default: OFF",
-      "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) for 6 hours after a carb entry, regardless of whether there are active carbs on board (COB).",
+      "**Default: ON",
+      "Enabling this feature allows Buddy to deliver insulin required using Super Micro Boluses (SMB) for 6 hours after a carb entry, regardless of whether there are active carbs on board (COB).",
       "Note: If this is enabled and the criteria are met, SMBs could be utilized regardless of other SMB settings being enabled or not."
     ]
   },
@@ -141,7 +142,7 @@ export const TRIO_COPY = {
     "miniHint": "Allow SMB when glucose is above the High Glucose Target value.",
     "hint": [
       "**Default: OFF",
-      "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) when glucose reading is above the value set as High Glucose Target.",
+      "Enabling this feature allows Buddy to deliver insulin required using Super Micro Boluses (SMB) when glucose reading is above the value set as High Glucose Target.",
       "Note: If this is enabled and the criteria are met, SMBs could be utilized regardless of other SMB settings being enabled or not."
     ],
     "conditionalLabel": "High Glucose Target"
@@ -151,7 +152,7 @@ export const TRIO_COPY = {
     "miniHint": "Allow SMB when a manual Temporary Target is set greater than {g:100} {unit}.",
     "hint": [
       "**Default: OFF",
-      "Enabling this feature allows Trio to deliver insulin required using Super Micro Boluses (SMB) when a manual Temporary Target above {g:100} {unit} is set.",
+      "Enabling this feature allows Buddy to deliver insulin required using Super Micro Boluses (SMB) when a manual Temporary Target above {g:100} {unit} is set.",
       "Note: If this is enabled and the criteria are met, SMBs could be utilized regardless of other SMB settings being enabled or not.",
       "**Warning: High Temp Targets are often set when recovering from lows. If you use High Temp Targets for that purpose, this feature should remain disabled."
     ]
@@ -160,7 +161,7 @@ export const TRIO_COPY = {
     "label": "Enable UAM",
     "miniHint": "Enable Unannounced Meals SMB.",
     "hint": [
-      "**Default: OFF",
+      "**Default: ON",
       "Enabling the UAM (Unannounced Meals) feature allows the system to detect and respond to unexpected rises in glucose readings caused by unannounced or miscalculated carbs, meals high in fat or protein, or other factors like adrenaline.",
       "It uses the SMB (Super Micro Bolus) algorithm to deliver insulin in small amounts to correct glucose spikes. UAM also works in reverse, reducing or stopping SMBs if glucose levels drop unexpectedly.",
       "This feature ensures more accurate insulin adjustments when carb entries are missing or incorrect."
@@ -176,7 +177,7 @@ export const TRIO_COPY = {
       "To calculate the maximum SMB allowed based on this setting, use the following formula:",
       "𝒳 = Max SMB Basal Minutes",
       "(𝒳 / 60) × current basal rate",
-      "**Warning: Increasing this value above 90 minutes may impact Trio's ability to effectively zero temp and prevent lows.",
+      "**Warning: Increasing this value above 90 minutes may impact Buddy's ability to effectively zero temp and prevent lows.",
       "Note: SMBs must be enabled to use this limit."
     ]
   },
@@ -190,7 +191,7 @@ export const TRIO_COPY = {
       "To calculate the maximum UAM SMB allowed based on this setting, use the following formula:",
       "𝒳 = Max UAM SMB Basal Minutes",
       "(𝒳 / 60) × current basal rate",
-      "**Warning: Increasing this value above 90 minutes may impact Trio's ability to effectively zero temp and prevent lows.",
+      "**Warning: Increasing this value above 90 minutes may impact Buddy's ability to effectively zero temp and prevent lows.",
       "Note: UAM SMBs must be enabled to use this limit."
     ]
   },
@@ -199,7 +200,7 @@ export const TRIO_COPY = {
     "miniHint": "Disables SMBs if last two glucose values differ by more than this percent.",
     "hint": [
       "**Default: 20% increase",
-      "Maximum allowed positive percent change in glucose level to permit SMBs. If the difference in glucose is greater than this, Trio will only adjust Temp Basal Rate and not deliver an SMB that loop cycle.",
+      "Maximum allowed positive percent change in glucose level to permit SMBs. If the difference in glucose is greater than this, Buddy will only adjust Temp Basal Rate and not deliver an SMB that loop cycle.",
       "This is a safety limitation to avoid high SMB doses when glucose is rising abnormally fast, such as after a meal or with a very jumpy CGM sensor.",
       "Note: This setting has a hard-coded cap of 40%"
     ]
@@ -229,9 +230,9 @@ export const TRIO_COPY = {
     "label": "Weighted Average of TDD",
     "miniHint": "Weight of 24-hr TDD against 10-day TDD.",
     "hint": [
-      "**Default: 35%",
+      "**Default: 65%",
       "This setting adjusts how much weight is given to your recent total daily insulin dose when calculating Dynamic ISF and Dynamic CR.",
-      "At the default setting, 35% of the calculation is based on the last 24 hours of insulin use, with the remaining 65% considering the last 10 days of data.",
+      "Buddy fixes this at 65% and does not apply it yet: Dynamic ISF currently uses your total daily dose of the last 24 hours only, so changing the weighting has no effect.",
       "Setting this to 100% means only the past 24 hours will be used.",
       "A lower value smooths out these variations for more stability."
     ]
@@ -274,7 +275,7 @@ export const TRIO_COPY = {
     "miniHint": "Raise target glucose when Autosens Ratio is less than 1.",
     "hint": [
       "**Default: OFF",
-      "Enabling this feature causes Trio to automatically raise the targeted glucose if it detects an increase in insulin sensitivity from your baseline."
+      "Enabling this feature causes Buddy to automatically raise the targeted glucose if it detects an increase in insulin sensitivity from your baseline."
     ]
   },
   "resistanceLowersTarget": {
@@ -282,7 +283,7 @@ export const TRIO_COPY = {
     "miniHint": "Lower target glucose when Autosens Ratio is greater than 1.",
     "hint": [
       "**Default: OFF",
-      "Enabling this feature causes Trio to automatically reduce the targeted glucose if it detects a decrease in sensitivity (resistance) from your baseline."
+      "Enabling this feature causes Buddy to automatically reduce the targeted glucose if it detects a decrease in sensitivity (resistance) from your baseline."
     ]
   },
   "halfBasalExerciseTarget": {
@@ -300,7 +301,7 @@ export const TRIO_COPY = {
     "miniHint": "Limits temporary basal rates to this percentage of your largest basal rate.",
     "hint": [
       "**Default: 300%",
-      "This setting restricts the maximum temporary basal rate Trio can set. At the default of 300%, it caps it at 3 times your highest programmed basal rate.",
+      "This setting restricts the maximum temporary basal rate Buddy can set. At the default of 300%, it caps it at 3 times your highest programmed basal rate.",
       "It serves as a safety limit, ensuring no temporary basal rates exceed safe levels.",
       "**Warning: Increasing this setting is not advised."
     ]
@@ -319,9 +320,10 @@ export const TRIO_COPY = {
     "label": "Duration of Insulin Action",
     "miniHint": "Number of hours insulin is active in your body.",
     "hint": [
-      "**Default: 10 hours",
+      "**Default: 6 hours",
       "The Duration of Insulin Action (DIA) defines how long your insulin continues to lower glucose readings after a dose.",
       "This helps the system accurately track Insulin on Board (IOB), avoiding over- or under-corrections by considering the tail end of insulin's effect.",
+      "Buddy starts with 6 hours; completing onboarding sets it to 10 hours.",
       "Tip: It is better to use Custom Peak Time rather than adjust your Duration of Insulin Action (DIA)."
     ]
   },
@@ -343,7 +345,7 @@ export const TRIO_COPY = {
     "miniHint": "Skip neutral temporary basal rates to reduce MDT pump alerts.",
     "hint": [
       "**Default: OFF",
-      "When Skip Neutral Temps is enabled, Trio will not set neutral basal rates shortly before the hour, minimizing hourly pump alerts on MDT pumps. This can help light sleepers avoid alerts but will delay basal adjustments. This will also only come into effect if SMB's are disabled for whatever reason.",
+      "When Skip Neutral Temps is enabled, Buddy will not set neutral basal rates shortly before the hour, minimizing hourly pump alerts on MDT pumps. This can help light sleepers avoid alerts but will delay basal adjustments. This will also only come into effect if SMB's are disabled for whatever reason.",
       "For most users, leaving this OFF is recommended to ensure consistent basal delivery and loop calculation. If this option is effective, loops will be skipped during the last 5 minutes of the hour."
     ]
   },
@@ -352,7 +354,7 @@ export const TRIO_COPY = {
     "miniHint": "Resume pump automatically after suspension.",
     "hint": [
       "**Default: OFF",
-      "Enabling Unsuspend If No Temp allows Trio to resume your pump if you forget, as long as a zero temp basal was set first. This feature ensures insulin delivery restarts if you forget to manually unsuspend, adding a safeguard for pump reconnections.",
+      "Enabling Unsuspend If No Temp allows Buddy to resume your pump if you forget, as long as a zero temp basal was set first. This feature ensures insulin delivery restarts if you forget to manually unsuspend, adding a safeguard for pump reconnections.",
       "Note: Applies only to pumps with on-pump suspend options"
     ]
   },
@@ -362,7 +364,7 @@ export const TRIO_COPY = {
     "hint": [
       "**Default: 50%",
       "Once the total insulin required is calculated, this safety limit specifies what percentage of the insulin required can be delivered as an SMB.",
-      "Due to SMBs potentially occurring every 5 minutes with each loop cycle, it is important to set this value to a reasonable level that allows Trio to safely zero temp should dosing needs suddenly change. Increase this value with caution.",
+      "Due to SMBs potentially occurring every 5 minutes with each loop cycle, it is important to set this value to a reasonable level that allows Buddy to safely zero temp should dosing needs suddenly change. Increase this value with caution.",
       "Note: Allowed range is 30 - 70%"
     ]
   },
@@ -371,7 +373,7 @@ export const TRIO_COPY = {
     "miniHint": "Minimum minutes since the last SMB or manual bolus to allow an automated SMB.",
     "hint": [
       "**Default: 3 min",
-      "This is the minimum number of minutes since the last SMB or manual bolus before Trio will permit an automated SMB."
+      "This is the minimum number of minutes since the last SMB or manual bolus before Buddy will permit an automated SMB."
     ]
   },
   "min5mCarbimpact": {
@@ -423,10 +425,10 @@ export const TRIO_COPY = {
     "label": "Recommended Bolus Percentage",
     "miniHint": "Percentage of bolus suggested in bolus calculator.",
     "hint": [
-      "**Default: 80%",
-      "Recommended Bolus Percentage is a safety feature built into Trio. Trio first calculates an insulin required value, which is the full dosage. That dosage is then multiplied by your Recommended Bolus Percentage to display your suggested insulin dose in the bolus calculator.",
-      "Because Trio utilizes SMBs and UAM SMBs to help you reach your target glucose and other AID systems do not bolus for COB the same way Trio does, this is initially set to below the full calculated amount (80%). When SMBs and UAM SMBs are enabled, you may find your current CR results in lows and needs to be increased before you increase this setting closer to or at 100%.",
-      "Tip: If you are a new Trio user, it is not advised to set this to 100% until you have verified that your core settings (basal rates, ISF, and CR) do not need adjusting."
+      "**Default: 70%",
+      "Recommended Bolus Percentage is a safety feature built into Buddy. Buddy first calculates an insulin required value, which is the full dosage. That dosage is then multiplied by your Recommended Bolus Percentage to display your suggested insulin dose in the bolus calculator.",
+      "Because Buddy utilizes SMBs and UAM SMBs to help you reach your target glucose and other AID systems do not bolus for COB the same way Buddy does, this is initially set to below the full calculated amount (70%). When SMBs and UAM SMBs are enabled, you may find your current CR results in lows and needs to be increased before you increase this setting closer to or at 100%.",
+      "Tip: If you are a new Buddy user, it is not advised to set this to 100% until you have verified that your core settings (basal rates, ISF, and CR) do not need adjusting."
     ],
     "header": "Calculator Configuration"
   },
@@ -544,7 +546,7 @@ export const TRIO_COPY = {
     "label": "Show Carbs Required Badge",
     "miniHint": "Show carbs required as a red icon on the main graph icon.",
     "hint": [
-      "Turning this on will show the grams of carbs needed to prevent a low as a notification badge on the Trio home screen located above the main icon.\n\nOnce enabled, set the Carbs Required Threshold to the lowest number of carbs you'd like to be recommended. A recommendation will not be given if carbs required is below this number.\n\nNote: The carbs suggested with this feature are to be used as a recommendation, not as a requirement. Depending on the current accuracy of your sensor and the accuracy of your settings, the suggested carbs can vary widely. Use your best judgement before ingesting the suggested quantity of carbs."
+      "Turning this on will show the grams of carbs needed to prevent a low as a notification badge on the Buddy home screen located above the main icon.\n\nOnce enabled, set the Carbs Required Threshold to the lowest number of carbs you'd like to be recommended. A recommendation will not be given if carbs required is below this number.\n\nNote: The carbs suggested with this feature are to be used as a recommendation, not as a requirement. Depending on the current accuracy of your sensor and the accuracy of your settings, the suggested carbs can vary widely. Use your best judgement before ingesting the suggested quantity of carbs."
     ],
     "header": "Carbs Required Badge",
     "conditionalLabel": "Carbs Required Threshold"
@@ -562,19 +564,19 @@ export const TRIO_COPY = {
     "miniHint": "Automate boluses using the iOS Shortcuts App.",
     "hint": [
       "**Default: OFF",
-      "Enabling this setting allows the iOS Shortcuts App to send bolus commands to Trio.",
+      "Enabling this setting allows the iOS Shortcuts App to send bolus commands to Buddy.",
       "Disabling this setting will still allow other commands, like Temp Targets, Add Carbs, and Start/End Overrides"
     ]
   },
   "isTrioRemoteControlEnabled": {
     "label": "Enable Remote Control",
-    "miniHint": "Allow Trio to receive commands from Loop Follow remotely.",
+    "miniHint": "Allow Buddy to receive commands from Loop Follow remotely.",
     "hint": [
       "**Default: OFF",
-      "When Remote Control is enabled, you can send boluses, overrides, temporary targets, carbs, and other commands to Trio via push notifications.",
+      "When Remote Control is enabled, you can send boluses, overrides, temporary targets, carbs, and other commands to Buddy via push notifications.",
       "To ensure security, these commands are protected by a shared secret, which must be entered in the Loop Follow app."
     ],
-    "header": "Trio Remote Control"
+    "header": "Buddy Remote Control"
   },
   "enableQuickPickTreatments": {
     "label": "Enable Quick-Pick Treatments",

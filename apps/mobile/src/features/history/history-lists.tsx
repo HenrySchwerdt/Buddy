@@ -72,12 +72,24 @@ export function MealsList({ rows, showFuture, onToggleFuture, onEdit }: { rows: 
               },
               { label: 'Edit', icon: 'pencil', color: c.accent, onPress: () => onEdit(m.entry) },
             ]}>
-            <Row accessibilityLabel={`Carbs ${m.amount}, ${timeOfDay(m.date)}`}>
-              <Dot color={c.loopYellow} />
-              <T>Carbs</T>
-              <T>{m.amount}</T>
-              <View style={{ flex: 1 }} />
-              <Time t={m.date} />
+            <Row accessibilityLabel={`Carbs ${m.amount}, ${timeOfDay(m.date)}${m.note ? `, note: ${m.note}` : ''}`}>
+              <View style={{ flex: 1, gap: 5 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Dot color={c.loopYellow} />
+                  <T>Carbs</T>
+                  <T>{m.amount}</T>
+                  <View style={{ flex: 1 }} />
+                  <Time t={m.date} />
+                </View>
+                {m.note ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <SymbolView name="square.and.pencil" size={16} tintColor={c.secondary} />
+                    <T secondary style={{ flex: 1 }}>
+                      {m.note}
+                    </T>
+                  </View>
+                ) : null}
+              </View>
             </Row>
           </SwipeRow>
         ))

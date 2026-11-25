@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Platform } from 'react-native';
 import type { CgmPlugin } from '@buddy/core';
 import { cgms, pairLibreSensor } from '@/runtime/runtime';
 import { PrimaryButton, Row, Section, T, useTrioColors } from '@/trio';
@@ -133,7 +133,7 @@ function LibreSetup({ entry, onFinished }: { entry: CatalogEntry; onFinished: ()
       </Section>
       {mode === 'libre-2-direct' ? (
         <>
-          <Section header="Sensor" footer="Hold the top of your iPhone to the warmed-up sensor. Buddy reads it via NFC and enables Bluetooth streaming.">
+          <Section header="Sensor" footer={`Hold the ${Platform.OS === 'android' ? 'back of your phone' : 'top of your iPhone'} to the warmed-up sensor. Buddy reads it via NFC and enables Bluetooth streaming.`}>
             <Row onPress={pairing ? undefined : () => void pair()}>
               <T color={c.tabBar} style={{ flex: 1 }}>
                 Pair Sensor

@@ -10,6 +10,10 @@ import { bolusChipFormatter, formatGlucoseValue, type GlucoseUnits } from './for
 const SYSTEM_BLUE = '#0A84FF';
 const MGDL_PER_MMOLL = 18.0182;
 const PLOT_H = 120;
+/** Room above the top grid line so its y-axis label is not clipped. */
+const TOP_INSET = 8;
+/** Hour labels closer than this to the left edge are left-aligned so they are not clipped. */
+const EDGE_LABEL_PX = 10;
 const X_LABEL_H = 22;
 const Y_LABEL_W = 36;
 const LOW = 70;
@@ -60,7 +64,7 @@ function Chip({ c, icon, tint, label, unit, neutral }: { c: TrioColors; icon: SF
 function Plot(p: ForecastChartProps) {
   const [w, setW] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
-  const height = PLOT_H + X_LABEL_H;
+  const height = TOP_INSET + PLOT_H + X_LABEL_H;
   if (w === 0) return <View style={{ height }} onLayout={onLayout} />;
 
   const { c } = p;
@@ -74,7 +78,7 @@ function Plot(p: ForecastChartProps) {
   const yMax = mmol ? maxMgdl / MGDL_PER_MMOLL : maxMgdl;
   const conv = (mgdl: number) => (mmol ? mgdl / MGDL_PER_MMOLL : mgdl);
   const x = (t: number) => ((t - t0) / (t1 - t0)) * plotW;
-  const y = (v: number) => (1 - Math.min(yMax, Math.max(0, v)) / yMax) * PLOT_H;
+  const y = (v: number) => TOP_INSET + (1 - Math.min(yMax, Math.max(0, v)) / yMax) * PLOT_H;
   const yStep = mmol ? 5 : 100;
   const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
   const hourTicks: number[] = [];
@@ -105,8 +109,8 @@ function Plot(p: ForecastChartProps) {
         ))}
         {hourTicks.map((t) => (
           <G key={t}>
-            <Line x1={x(t)} x2={x(t)} y1={0} y2={PLOT_H} stroke={grid} strokeWidth={0.5} strokeDasharray="2 3" />
-            <SvgText x={x(t)} y={PLOT_H + 16} fontSize={11} fill={c.secondary} textAnchor="middle">
+            <Line x1={x(t)} x2={x(t)} y1={TOP_INSET} y2={TOP_INSET + PLOT_H} stroke={grid} strokeWidth={0.5} strokeDasharray="2 3" />
+            <SvgText x={x(t)} y={TOP_INSET + PLOT_H + 16} fontSize={11} fill={c.secondary} textAnchor={x(t) < EDGE_LABEL_PX ? 'start' : 'middle'}>
               {new Date(t).getHours()}
             </SvgText>
           </G>
@@ -114,7 +118,7 @@ function Plot(p: ForecastChartProps) {
         {visible.map((g) => (
           <Circle key={`${g.source}${g.date}`} cx={x(g.date)} cy={y(conv(g.value))} r={2.2} fill={trioGlucoseColor(c, g.value, LOW, HIGH)} />
         ))}
-        <Line x1={x(p.now)} x2={x(p.now)} y1={0} y2={PLOT_H} stroke={c.dark ? '#636366' : '#AEAEB2'} strokeWidth={2} strokeDasharray="3 3" />
+        <Line x1={x(p.now)} x2={x(p.now)} y1={TOP_INSET} y2={TOP_INSET + PLOT_H} stroke={c.dark ? '#636366' : '#AEAEB2'} strokeWidth={2} strokeDasharray="3 3" />
         {cone_ ? <Path d={cone_} fill={SYSTEM_BLUE} fillOpacity={0.5} /> : null}
       </Svg>
     </View>

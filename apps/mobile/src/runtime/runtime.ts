@@ -27,6 +27,7 @@ import { bleTransport } from './transports/ble';
 import { nfcTransport } from './transports/nfc';
 import { keychainSecretStore } from './transports/secret-store';
 import { useSettings } from './settings-store';
+import { useTreatmentSettings } from '../features/treatment/settings-store';
 
 /**
  * The app runtime wires settings → plugins → LoopEngine and schedules loop cycles.
@@ -85,7 +86,9 @@ export function currentAlgorithm(): AlgorithmPlugin {
 }
 
 export function algorithmSettingsFor(a: AlgorithmPlugin) {
-  return normalizeSettings(a.settings, a.defaultSettings, useSettings.getState().algorithmSettings[a.meta.id]);
+  const settings = normalizeSettings(a.settings, a.defaultSettings, useSettings.getState().algorithmSettings[a.meta.id]);
+  // Max COB is edited once under Units and Limits (as in Trio) and shared with any algorithm that reads it.
+  return 'maxCOB' in settings ? { ...settings, maxCOB: useTreatmentSettings.getState().maxCOB } : settings;
 }
 
 function closedLoopBlockReason(): string | null {

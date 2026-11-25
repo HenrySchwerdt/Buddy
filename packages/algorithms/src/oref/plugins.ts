@@ -8,12 +8,15 @@ const SMB_SECTION: SettingsSection = {
     { kind: 'boolean', key: 'enableSMBWithCOB', label: 'Enable SMB with COB', affectsDosing: true },
     { kind: 'boolean', key: 'enableSMBAfterCarbs', label: 'Enable SMB after carbs', help: 'Keep SMBs enabled for 6 h after carbs.', affectsDosing: true },
     { kind: 'boolean', key: 'enableSMBHighBg', label: 'Enable SMB with high glucose', affectsDosing: true },
+    { kind: 'boolean', key: 'enableSMBWithTempTarget', label: 'Enable SMB with temp target', help: 'Allow SMBs while a temp target below 100 mg/dL is set.', affectsDosing: true },
+    { kind: 'boolean', key: 'allowSMBWithHighTempTarget', label: 'Allow SMB with high temp target', help: 'Allow SMBs while a temp target above 100 mg/dL is set.', affectsDosing: true },
     { kind: 'number', key: 'enableSMBHighBgTarget', label: 'High glucose SMB threshold', unit: 'mg/dL', min: 120, max: 300, step: 5 },
     { kind: 'boolean', key: 'enableUAM', label: 'Unannounced meals (UAM)', help: 'Detect rises without logged carbs and dose for them.', affectsDosing: true },
     { kind: 'number', key: 'maxSMBBasalMinutes', label: 'Max SMB basal minutes', unit: 'min', min: 15, max: 120, step: 15, affectsDosing: true },
     { kind: 'number', key: 'maxUAMSMBBasalMinutes', label: 'Max UAM SMB basal minutes', unit: 'min', min: 15, max: 120, step: 15, affectsDosing: true },
     { kind: 'number', key: 'smbDeliveryRatio', label: 'SMB delivery ratio', help: 'Share of insulinReq delivered per SMB.', min: 0.3, max: 0.7, step: 0.05, affectsDosing: true },
     { kind: 'number', key: 'smbInterval', label: 'SMB interval', unit: 'min', min: 1, max: 10, step: 1 },
+    { kind: 'number', key: 'maxDeltaBGThreshold', label: 'Max delta glucose threshold', help: 'SMBs are skipped when the last glucose change exceeds this fraction of current glucose.', min: 0.1, max: 0.4, step: 0.05, affectsDosing: true },
   ],
 };
 

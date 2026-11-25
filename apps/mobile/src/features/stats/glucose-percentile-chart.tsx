@@ -9,7 +9,7 @@ import { niceTicks, pad2, runs } from './chart-kit';
 import { DYN, SYS, alpha, glucoseValue, glucoseWithUnit, inUnits } from './format';
 import { ChartPopover, Legend, Row } from './ui';
 
-const CHART_H = 200;
+const CHART_H = 130;
 const AXIS_W = 44;
 const X_LABEL_H = 24;
 const LONG_PRESS_MS = 250;
@@ -96,7 +96,7 @@ export function GlucosePercentileChart({ stats, units, bottom, top, highLimit, i
                 </SvgText>
               ))}
               {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => (
-                <SvgText key={`x${h}`} x={x(h)} y={plotH + 20} fontSize={13} fill={c.secondary} textAnchor="middle">
+                <SvgText key={`x${h}`} x={x(h)} y={plotH + 20} fontSize={13} fill={c.secondary} textAnchor={h === 0 ? 'start' : 'middle'}>
                   {pad2(h)}
                 </SvgText>
               ))}

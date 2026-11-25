@@ -79,7 +79,7 @@ export function SheetScreen({ title, leading, trailing, children, scroll = true,
   return (
     <View style={{ flex: 1 }}>
       <TrioBackground />
-      <View style={[styles.toolbar, { marginTop: 20 }]}>
+      <View style={[styles.toolbar, { marginTop: 12 }]}>
         <View style={styles.side}>{leading}</View>
         <T style_="headline" style={[styles.inlineTitle, { fontSize: 19 }]} numberOfLines={1}>
           {title}
@@ -88,11 +88,11 @@ export function SheetScreen({ title, leading, trailing, children, scroll = true,
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         {scroll ? (
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 16, padding: 16, paddingBottom: insets.bottom + 24 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 16, padding: 16, paddingTop: 8, paddingBottom: insets.bottom + 24 }}>
             {children}
           </ScrollView>
         ) : (
-          <View style={{ flex: 1, gap: 16, padding: 16 }}>{children}</View>
+          <View style={{ flex: 1, gap: 16, padding: 16, paddingTop: 8 }}>{children}</View>
         )}
       </KeyboardAvoidingView>
       {footer ? <View style={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 8 }}>{footer}</View> : null}

@@ -44,7 +44,7 @@ export default function TabsLayout() {
             router.push('/treatment');
           }}
           style={({ pressed }) => [styles.treat, { opacity: pressed ? 0.7 : 1 }]}>
-          <SymbolView name="plus.circle.fill" size={46} tintColor={c.tabBar} type="hierarchical" />
+          <SymbolView name="plus.circle.fill" size={46} tintColor={c.tabBar} type="monochrome" />
         </Pressable>
       </View>
     </View>

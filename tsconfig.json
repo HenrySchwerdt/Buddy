@@ -6,7 +6,8 @@
       "@buddy/algorithms": ["./packages/algorithms/src/index.ts"],
       "@buddy/simulator": ["./packages/simulator/src/index.ts"],
       "@buddy/devices": ["./packages/devices/src/index.ts"],
-      "@buddy/nightscout": ["./packages/nightscout/src/index.ts"]
+      "@buddy/nightscout": ["./packages/nightscout/src/index.ts"],
+      "@buddy/tidepool": ["./packages/tidepool/src/index.ts"]
     }
   },
   "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "vitest.config.mts"]

@@ -3,6 +3,21 @@ import { MINUTE } from './units';
 
 export const DEFAULT_ABSORPTION_HOURS = 3;
 
+let maxAbsorptionHours = Infinity;
+
+/**
+ * Upper limit for any entry's absorption time (Trio's `maxMealAbsorptionTime`, hours). The app sets
+ * it from the Meal Settings; non-positive or non-finite values remove the limit.
+ */
+export function setMaxAbsorptionHours(hours: number): void {
+  maxAbsorptionHours = Number.isFinite(hours) && hours > 0 ? hours : Infinity;
+}
+
+/** Absorption time of an entry in hours, limited by the configured maximum. */
+export function absorptionHoursOf(e: { readonly absorptionHours?: number }): number {
+  return Math.min(e.absorptionHours ?? DEFAULT_ABSORPTION_HOURS, maxAbsorptionHours);
+}
+
 /** Fraction of a carb entry absorbed after `minutes` (linear model). */
 export function absorbedFraction(minutes: number, absorptionHours: number): number {
   if (minutes <= 0) return 0;
@@ -13,7 +28,7 @@ export function carbsOnBoard(entries: readonly CarbEntry[], at: Millis): number 
   return entries.reduce((cob, e) => {
     const minutes = (at - e.date) / MINUTE;
     if (minutes < 0) return cob;
-    const h = e.absorptionHours ?? DEFAULT_ABSORPTION_HOURS;
+    const h = absorptionHoursOf(e);
     return cob + e.grams * (1 - absorbedFraction(minutes, h));
   }, 0);
 }

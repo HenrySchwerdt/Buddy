@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { Modal, Platform, Switch, View } from 'react-native';
 import { useSettings } from '@/runtime/settings-store';
 import { CapsuleButton, PickerRow, Row, Section, SheetScreen, T, ToggleRow, useTrioColors, ValueRow } from '@/trio';
+import { useGlucoseAlarms } from './alarm-store';
+import { GlucoseAlarmEditorSheet } from './glucose-alarm-editor';
 import { activeWindow, ALARM_META, formatValue, overridesFocus, pickerValues, readValue, REPEAT_OPTIONS, unitLabel, windowLabel, type ValueSpec } from './alarm-catalog';
 import { ValueWheelSection } from './value-wheel';
 
@@ -10,6 +12,9 @@ type Working = Record<string, number | boolean>;
 
 /** GlucoseAlertEditorView / DeviceAlarmEditorView as a page sheet: Cancel · Title · Done. */
 export function AlarmEditorSheet({ kind, variant, onClose }: { kind: AlertKind | null; variant: 'glucose' | 'device'; onClose: () => void }) {
+  // Glucose alarms are a list now: the single-alarm screens edit the first alarm of that kind.
+  const first = useGlucoseAlarms((s) => (kind && variant === 'glucose' ? s.alarms.find((a) => a.kind === kind) : undefined));
+  if (variant === 'glucose' && kind && first) return <GlucoseAlarmEditorSheet alarm={first} onClose={onClose} />;
   return (
     <Modal visible={kind !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       {kind ? <Editor key={kind} kind={kind} variant={variant} onClose={onClose} /> : null}
@@ -90,7 +95,7 @@ function Editor({ kind, variant, onClose }: { kind: AlertKind; variant: 'glucose
         <PickerRow label="Repeat Every" value={Number(working.repeatMinutes)} options={REPEAT_OPTIONS} onChange={(v) => set('repeatMinutes', v)} />
       </Section>
 
-      <Section header="Active During" footer="Day and Night windows are configured globally on the Alarms screen. In Buddy, the Night window silences every alarm except Urgent Low.">
+      <Section header="Active During" footer="Device alarms are active day and night. Glucose alarms each choose their own Day and Night window.">
         <ValueRow label="Active" value={window} valueColor={c.secondary} />
       </Section>
 

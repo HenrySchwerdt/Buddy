@@ -7,11 +7,8 @@ import { CapsuleButton } from './buttons';
 import { useTrioColors } from './colors';
 import { T } from './text';
 
-/**
- * Bottom space for tab screens: iOS reserves room under Trio's floating glass tab bar; Android's
- * navigation bar sits below the content, so only the FAB (56 dp + margins) needs clearing.
- */
-export const TAB_BAR_SPACE = Platform.OS === 'android' ? 88 : 96;
+/** Bottom space for tab screens: room under Trio's floating tab bar. */
+export const TAB_BAR_SPACE = 96;
 
 export function TrioBackground() {
   const c = useTrioColors();
@@ -36,39 +33,24 @@ interface ScreenProps {
  */
 export function TrioScreen({ title, inlineTitle, leading, trailing, scroll = true, back, tabBar = true, children }: PropsWithChildren<ScreenProps>) {
   const insets = useSafeAreaInsets();
-  // Android: pushed screens put the title in a Material top app bar next to the back arrow;
-  // tab roots keep a large title under the actions (Material "large top app bar").
-  const android = Platform.OS === 'android';
-  const appBarTitle = android && back ? (title ?? inlineTitle) : undefined;
-  // Tab roots on Android show their name as the large title, whether Trio inlines it or not.
-  const largeTitle = android ? (back ? undefined : (title ?? inlineTitle)) : title;
-  const toolbar =
-    Platform.OS === 'android' ? (
-      <View style={styles.mdAppBar}>
-        {back ? <CapsuleButton icon="chevron.left" onPress={() => router.back()} accessibilityLabel="Back" /> : leading ? <View>{leading}</View> : <View style={{ width: 4 }} />}
-        <T style={styles.mdTitle} numberOfLines={1} accessibilityRole="header">
-          {appBarTitle ?? ''}
+  const toolbar = (
+    <View style={styles.toolbar}>
+      <View style={styles.side}>{back ? <CapsuleButton icon="chevron.left" onPress={() => router.back()} accessibilityLabel="Back" /> : leading}</View>
+      {inlineTitle ? (
+        <T style_="headline" style={styles.inlineTitle} numberOfLines={1}>
+          {inlineTitle}
         </T>
-        {trailing ? <View>{trailing}</View> : null}
-      </View>
-    ) : (
-      <View style={styles.toolbar}>
-        <View style={styles.side}>{back ? <CapsuleButton icon="chevron.left" onPress={() => router.back()} accessibilityLabel="Back" /> : leading}</View>
-        {inlineTitle ? (
-          <T style_="headline" style={styles.inlineTitle} numberOfLines={1}>
-            {inlineTitle}
-          </T>
-        ) : (
-          <View style={{ flex: 1 }} />
-        )}
-        <View style={[styles.side, { alignItems: 'flex-end' }]}>{trailing}</View>
-      </View>
-    );
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
+      <View style={[styles.side, { alignItems: 'flex-end' }]}>{trailing}</View>
+    </View>
+  );
   const body = (
     <View style={{ gap: 16, paddingHorizontal: 16, paddingBottom: insets.bottom + (tabBar ? TAB_BAR_SPACE : 24) }}>
-      {largeTitle ? (
+      {title ? (
         <T style_="largeTitle" style={{ marginLeft: 4 }} accessibilityRole="header">
-          {largeTitle}
+          {title}
         </T>
       ) : null}
       {children}
@@ -128,22 +110,8 @@ export function SheetScreen({ title, leading, trailing, children, scroll = true,
   );
 }
 
-/**
- * Sheet header. iOS: Trio's [Close]  Title  [Action] with a centred title.
- * Android: Material 3 small top app bar — leading action, left-aligned title, trailing actions.
- */
+/** Sheet header: Trio's [Close]  Title  [Action] with a centred title. */
 function SheetHeader({ title, leading, trailing }: { title: string; leading?: ReactNode; trailing?: ReactNode }) {
-  if (Platform.OS === 'android') {
-    return (
-      <View style={styles.mdAppBar}>
-        {leading ? <View>{leading}</View> : <View style={{ width: 4 }} />}
-        <T style={styles.mdTitle} numberOfLines={1} accessibilityRole="header">
-          {title}
-        </T>
-        {trailing ? <View>{trailing}</View> : null}
-      </View>
-    );
-  }
   return (
     <View style={[styles.toolbar, { marginTop: 12 }]}>
       <View style={styles.centerTitle} pointerEvents="none">
@@ -159,8 +127,6 @@ function SheetHeader({ title, leading, trailing }: { title: string; leading?: Re
 }
 
 const styles = StyleSheet.create({
-  mdAppBar: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 64, paddingHorizontal: 8 },
-  mdTitle: { flex: 1, fontSize: 22, fontWeight: '500', paddingHorizontal: 8 },
   toolbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 },
   side: { minWidth: 44, maxWidth: '45%' },
   inlineTitle: { flex: 1, textAlign: 'center' },

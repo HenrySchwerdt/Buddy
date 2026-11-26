@@ -1,8 +1,8 @@
 # Porting Trio dev's UI to Buddy
 
 **iOS** is a 1:1 port of Trio dev (1.0.2.88): screens, behaviour, validation, defaults, copy and
-order match. **Android** is Material 3, reached through platform branches in the same code
-(see "Android" below); there is no separate Android app. Two references for the iOS side:
+order match. **Android** shows the same Trio look from the same code (see "Android" below);
+there is no separate Android app. Two references for the iOS side:
 
 - **Screenshots:** `docs/trio-reference/*.png` (iPhone 17, dark mode, 1206×2622 px = 3× of
   402×874 pt). Measure in points (px ÷ 3).
@@ -35,22 +35,22 @@ order match. **Android** is Material 3, reached through platform branches in the
 
 Do not use the older components in `src/components` or `src/theme` for new work.
 
-## Android (Material 3)
+## Android (same Trio look)
 
-Screens are written once in Trio's SwiftUI vocabulary; Android differs only through:
+Screens are written once in Trio's SwiftUI vocabulary and look the same on Android:
 
-- **Colours:** `MD_DARK` / `MD_LIGHT` in `trio/colors.ts` (Material roles from the seed `#7D8CF2`).
-  Data colours (glucose, insulin, carbs, loop state) keep Trio's values.
-- **Platform branches** (`Platform.OS === 'android'`) inside `trio/*` components, and
-  **`.android.tsx` twins** that Metro picks on Android: `app/(tabs)/_layout.android.tsx`
-  (Material navigation bar plus floating action button) and
-  `features/adjustments/components/native.android.tsx` (SwiftUI controls replaced by
-  `trio/android-pickers.tsx` and Compose controls). A twin must keep the exports and props of
-  the iOS file.
+- **Colours and type:** Trio's palette and type scale on both platforms (`trio/colors.ts`,
+  `trio/text.tsx`); rounded numbers use Nunito on Android in place of SF Rounded.
+- **iOS-only controls get JS twins drawn like the iOS control:** action sheet and alert
+  (`trio/choice-dialog.tsx`, which also replaces `Alert.alert`/`Alert.prompt` on Android),
+  switch (`trio/switch.tsx`), slider (`trio/slider.tsx`), page sheets (`trio/sheet-modal.tsx`),
+  wheels (`trio/android-pickers.tsx`). iOS keeps the native controls.
+- **`.android.tsx` twins** that Metro picks on Android: `app/(tabs)/_layout.android.tsx` (Trio's
+  floating tab bar with the centre treatment button) and
+  `features/adjustments/components/native.android.tsx`. A twin must keep the exports and props
+  of the iOS file.
 - **Icons:** `trio/symbol-map.ts` maps each SF Symbol name to a Material Symbol. Using a new SF
   Symbol anywhere in `src` requires a map entry; `trio/__tests__/symbol.test.ts` fails otherwise.
-- **Dialogs:** `trio/choice-dialog.tsx` shows the native action sheet on iOS and a Material
-  dialog on Android (`Alert.alert` there cuts off after three buttons).
 - Copy that names the system settings app uses `SYSTEM_SETTINGS` (`features/platform-copy.ts`).
 
 Build and run: see the dev-build section in the [README](../README.md).

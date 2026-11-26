@@ -111,6 +111,16 @@ export function createLibre3Source(settings: Libre3DirectSettings, ctx: DeviceCo
       await runtime?.engine.stop();
     },
     readings: async (since) => buffer.since(since),
+    sensorInfo() {
+      const sensor = runtime?.holder.current ?? null;
+      const telemetry = runtime?.pipeline.telemetry ?? null;
+      if (!sensor || telemetry?.lifeCount == null || telemetry.lastReadingAt == null) return null;
+      // Life count is the sensor's age in minutes at the last reading.
+      const startedAt = telemetry.lastReadingAt - telemetry.lifeCount * 60_000;
+      const wear = sensor.wearDurationMinutes;
+      if (wear == null) return null;
+      return { startedAt, expiresAt: startedAt + wear * 60_000, warmupEndsAt: startedAt + (sensor.warmupMinutes ?? 60) * 60_000 };
+    },
     idle: async () => runtime?.engine.idle(),
     checkSilence: async () => runtime?.engine.checkSilence(),
     status() {

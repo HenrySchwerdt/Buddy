@@ -421,7 +421,7 @@ export function tddBuckets(doses: readonly InsulinDose[], profile: TherapyProfil
   });
 }
 
-/** [manual, smb, external] per bucket. Buddy has no external insulin entries, so external is 0. */
+/** [manual, smb, external] per bucket. */
 export function bolusBuckets(doses: readonly InsulinDose[], interval: Interval, now: number): Bucket[] {
   return bucketStarts(interval, now).map((date) => {
     const to = bucketEnd(interval, date);
@@ -489,4 +489,53 @@ export function sumInRange(buckets: readonly Bucket[], range: { start: number; e
   return buckets
     .filter((b) => b.date >= range.start && b.date <= range.end)
     .reduce((a, b) => a + (index === undefined ? b.values.reduce((x, y) => x + y, 0) : (b.values[index] ?? 0)), 0);
+}
+
+// ---------------------------------------------------------------- percentile detail (GlucoseDailyPercentileChart)
+
+/** `GlucosePercentileType` of Trio's daily percentile detail view. */
+export type PercentileKey = 'min' | 'p10' | 'p25' | 'median' | 'p75' | 'p90' | 'max';
+export const PERCENTILE_KEYS: readonly { key: PercentileKey; label: string }[] = [
+  { key: 'min', label: 'Min' },
+  { key: 'p10', label: '10%' },
+  { key: 'p25', label: '25%' },
+  { key: 'median', label: 'Median' },
+  { key: 'p75', label: '75%' },
+  { key: 'p90', label: '90%' },
+  { key: 'max', label: 'Max' },
+];
+
+export type PercentileSummary = Readonly<Record<PercentileKey, number>>;
+
+/** StatChartUtils.medianCalculationDouble. */
+function medianOf(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  const s = [...values].sort((a, b) => a - b);
+  const n = s.length;
+  return n % 2 === 0 ? (s[n / 2 - 1]! + s[n / 2]!) / 2 : s[Math.floor(n / 2)]!;
+}
+
+/** One day's percentiles as a summary (all zeros without data). */
+export function dayPercentiles(day: DailyGlucose): PercentileSummary {
+  return { min: day.min, p10: day.p10, p25: day.p25, median: day.median, p75: day.p75, p90: day.p90, max: day.max };
+}
+
+/**
+ * aggregatedVisibleStats: over the days in [start, end] that have data, the absolute min and
+ * max, and the median of each daily percentile. Null when no visible day has data.
+ */
+export function aggregateVisibleDays(days: readonly DailyGlucose[], range: { start: number; end: number }): PercentileSummary | null {
+  const from = startOfDay(range.start);
+  const to = startOfDay(range.end);
+  const visible = days.filter((d) => d.median > 0 && startOfDay(d.day) >= from && startOfDay(d.day) <= to);
+  if (visible.length === 0) return null;
+  return {
+    min: Math.min(...visible.map((d) => d.min)),
+    p10: medianOf(visible.map((d) => d.p10)),
+    p25: medianOf(visible.map((d) => d.p25)),
+    median: medianOf(visible.map((d) => d.median)),
+    p75: medianOf(visible.map((d) => d.p75)),
+    p90: medianOf(visible.map((d) => d.p90)),
+    max: Math.max(...visible.map((d) => d.max)),
+  };
 }

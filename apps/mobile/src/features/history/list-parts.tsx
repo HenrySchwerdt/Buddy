@@ -1,9 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useRef, type PropsWithChildren } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { T, disabledFill, onFill, useTrioColors } from '@/trio';
+import { choose } from '@/trio/choice-dialog';
 
 const ACTION_W = 74;
 
@@ -63,16 +64,9 @@ export function NoData({ icon }: { icon: SFSymbol }) {
 /** Trio's glassActionSheet with a single destructive "Delete". */
 export function confirmDelete(title: string, message: string | undefined, onDelete: () => void): void {
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  if (Platform.OS === 'ios') {
-    ActionSheetIOS.showActionSheetWithOptions({ title, message, options: ['Delete', 'Cancel'], destructiveButtonIndex: 0, cancelButtonIndex: 1 }, (i) => {
-      if (i === 0) onDelete();
-    });
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: onDelete },
-  ]);
+  void choose({ title, message, items: [{ label: 'Delete', destructive: true }] }).then((i) => {
+    if (i === 0) onDelete();
+  });
 }
 
 export function Dot({ color }: { color: string }) {

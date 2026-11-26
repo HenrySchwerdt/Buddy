@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { CarbEntry } from '@buddy/core';
 import { useSnapshot } from '@/runtime/hooks';
+import { startGlucoseAlarmSync } from '@/features/settings-b/alarm-store';
+import { startMealAbsorptionSync } from '@/features/settings-b/meal-absorption';
 import { useRuntime } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';
 import { CapsuleButton, Segmented, TrioScreen } from '@/trio';
@@ -14,6 +16,8 @@ import { AdjustmentsList, GlucoseList, MealsList, TreatmentsList } from './histo
 import { HISTORY_MODES, TREATMENT_TYPES, glucoseRows, mealRows, treatmentRows, type TreatmentType } from './rows';
 
 startAdjustmentLog();
+startMealAbsorptionSync();
+startGlucoseAlarmSync();
 
 /** Port of Trio's History.RootView. */
 export function HistoryScreen() {

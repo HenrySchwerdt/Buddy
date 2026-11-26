@@ -1,8 +1,11 @@
 import { router } from 'expo-router';
 import { SymbolView } from '@/trio/symbol';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { MINUTE } from '@buddy/core';
 import { fmtTime } from '@/features/format';
+import { LoopStatusHelpSheet } from '@/features/loop-status/help-sheet';
+import { computedTags, convertConclusion, parseReason } from '@/features/loop-status/reason';
 import { useSnapshot } from '@/runtime/hooks';
 import { currentAlgorithm, useRuntime } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';
@@ -11,6 +14,8 @@ import { T, TrioBackground, useTrioColors } from '@/trio';
 /** LoopStatusView port: status badge, dosing mode, summary, failure details, reasoning. */
 export default function LoopStatusSheet() {
   const c = useTrioColors();
+  const [help, setHelp] = useState(false);
+  const units = useSettings((s) => s.units);
   const runs = useSnapshot().loopRuns;
   const now = useRuntime((r) => r.now);
   const blocked = useRuntime((r) => r.closedLoopBlocked);
@@ -30,6 +35,10 @@ export default function LoopStatusSheet() {
   const badge = !lastOk || !fresh ? (lastOk ? c.loopRed : c.loopGreen) : c.loopGreen;
   const summary = !closed ? 'Buddy worked this out but did not send anything to your pump.' : null;
   const reason = lastOk?.suggested?.reason;
+  const parsed = reason ? parseReason(reason) : null;
+  const tdd = lastOk?.suggested?.debug?.TDD;
+  const tags = reason ? computedTags(reason, typeof tdd === 'number' ? tdd : undefined, units) : [];
+  const conclusion = parsed ? convertConclusion(parsed.conclusion || reason!, units) : '';
 
   return (
     <View>
@@ -39,7 +48,9 @@ export default function LoopStatusSheet() {
           <T weight="700" style={{ fontSize: 19, flex: 1 }}>
             Current Loop Status
           </T>
-          <SymbolView name="questionmark.circle" size={22} tintColor={c.tabBar} />
+          <Pressable onPress={() => setHelp(true)} hitSlop={10} accessibilityRole="button" accessibilityLabel="More information">
+            <SymbolView name="questionmark.circle" size={22} tintColor={c.tabBar} />
+          </Pressable>
         </View>
         <View style={[styles.badge, { backgroundColor: badge }]}>
           <T style_="headline" color="#0B1726">
@@ -63,23 +74,39 @@ export default function LoopStatusSheet() {
         ) : null}
         {reason ? (
           <View style={{ gap: 8 }}>
+            {tags.length ? (
+              <>
+                <T weight="700" style={{ marginTop: 8 }}>
+                  Latest Raw Algorithm Output
+                </T>
+                <T style_="subheadline">Buddy is currently using these metrics and values as determined by the oref algorithm:</T>
+                <View style={styles.tags}>
+                  {tags.map((t) => (
+                    <View key={t} style={[styles.tag, { backgroundColor: c.dark ? 'rgba(235,235,245,0.12)' : 'rgba(60,60,67,0.1)' }]}>
+                      <T style_="caption">{t}</T>
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : null}
             <T weight="700" style={{ marginTop: 8 }}>
               Current Algorithm Reasoning
             </T>
             <T style_="caption" secondary>
               {currentAlgorithm().meta.name}
             </T>
-            <T style_="subheadline">{reason}</T>
+            <T style_="subheadline">{conclusion}</T>
           </View>
         ) : !lastOk ? (
           <T style={{ fontSize: 17 }}>No recent oref algorithm determination.</T>
         ) : null}
-        <Pressable onPress={() => router.back()} accessibilityRole="button" style={({ pressed }) => [styles.got, { backgroundColor: Platform.OS === 'android' ? c.fill : c.dark ? '#1C2A4A' : '#E5E8F5', opacity: pressed ? 0.7 : 1 }]}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" style={({ pressed }) => [styles.got, { backgroundColor: c.dark ? '#1C2A4A' : '#E5E8F5', opacity: pressed ? 0.7 : 1 }]}>
           <T weight="700" color={c.tabBar}>
             Got it!
           </T>
         </Pressable>
       </View>
+      <LoopStatusHelpSheet visible={help} onClose={() => setHelp(false)} />
     </View>
   );
 }
@@ -89,5 +116,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center' },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   modeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   got: { marginTop: 32, marginBottom: 24, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
 });

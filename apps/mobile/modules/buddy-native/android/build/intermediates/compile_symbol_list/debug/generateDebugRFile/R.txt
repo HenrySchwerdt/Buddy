@@ -1,0 +1,1 @@
+int drawable ic_buddy_status 0x0

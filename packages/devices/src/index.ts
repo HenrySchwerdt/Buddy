@@ -12,6 +12,9 @@ import { nightscoutFollower } from './nightscout/follower';
 import { omnipodDashPump, omnipodErosPump } from './omnipod';
 import { libre3DirectCgm } from './libre3';
 import { syaiCgm } from './syai';
+import { minimedPump } from './minimed';
+import { accuChekInsightPump } from './insight';
+import { xdripCgm } from './xdrip';
 
 export { demoCgm, demoPump, dexcomShareCgm, nightscoutCgm, nightscoutFollower, dexcomG6Cgm, dexcomG7Cgm };
 export { createDexcomG6Source, parseGlucoseRx, computeHash } from './dexcom-g6';
@@ -25,6 +28,9 @@ export { omnipodDashPump, createOmnipodDashDriver, OmnipodDashDriver, OmnipodDas
 export { omnipodErosPump, createOmnipodErosDriver, OmnipodErosDriver, ErosPodBench, isOmnipodErosDriver, readErosPodStatus, refreshErosPod, pairAndPrimeErosPod, insertErosCannula, deactivateErosPod, discardErosPod, scanForRileyLinks, type OmnipodErosSettings, type RileyLinkAdvertisement } from './omnipod';
 export { libre3DirectCgm, pairLibre3Sensor, installAppIdentities, Libre3PairingError, type Libre3CgmSource, type Libre3Status } from './libre3';
 export { syaiCgm } from './syai';
+export * from './minimed';
+export * from './insight';
+export * from './xdrip';
 export * from './testkit';
 export { demoHub, createDemoHub, type DemoHub } from './demo/hub';
 export { parseNightscoutEntries, normalizeBaseUrl } from './nightscout';
@@ -32,8 +38,8 @@ export { parseShareReadings, parseShareDate } from './dexcom-share';
 export { trendFromDirection } from './trend';
 
 /** Pump drivers bundled with Buddy. Real pumps arrive as native-module plugins (docs/ADDING_A_DEVICE.md). */
-export const BUILT_IN_PUMPS: readonly PumpPlugin[] = [demoPump, nightscoutFollower, danaPump, medtrumNanoPump, omnipodDashPump, omnipodErosPump] as unknown as PumpPlugin[];
-export const BUILT_IN_CGMS: readonly CgmPlugin[] = [demoCgm, dexcomG7Cgm, dexcomG6Cgm, libre2DirectCgm, libreTransmitterCgm, libre3DirectCgm, libreLinkUpCgm, syaiCgm, nightscoutCgm, dexcomShareCgm] as unknown as CgmPlugin[];
+export const BUILT_IN_PUMPS: readonly PumpPlugin[] = [demoPump, nightscoutFollower, danaPump, medtrumNanoPump, omnipodDashPump, omnipodErosPump, minimedPump, accuChekInsightPump] as unknown as PumpPlugin[];
+export const BUILT_IN_CGMS: readonly CgmPlugin[] = [demoCgm, dexcomG7Cgm, dexcomG6Cgm, libre2DirectCgm, libreTransmitterCgm, libre3DirectCgm, libreLinkUpCgm, syaiCgm, nightscoutCgm, dexcomShareCgm, xdripCgm] as unknown as CgmPlugin[];
 
 export const createPumpRegistry = (): Registry<PumpPlugin> => createRegistry(BUILT_IN_PUMPS);
 export const createCgmRegistry = (): Registry<CgmPlugin> => createRegistry(BUILT_IN_CGMS);

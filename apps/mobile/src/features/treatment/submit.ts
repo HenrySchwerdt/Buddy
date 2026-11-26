@@ -1,5 +1,6 @@
 import { newId } from '@buddy/core';
-import { deliverBolus, logCarbs, now, runLoop, store } from '@/runtime/runtime';
+import { deliverBolus, logCarbs, now, runLoop, store, useRuntime } from '@/runtime/runtime';
+import { requireUnlock } from '@/runtime/unlock';
 import { maxExternal } from './formatting';
 import { fpuCarbEquivalents, type FpuSettings } from './fpu';
 import { STALE_GLUCOSE_MS } from './use-treatment-model';
@@ -72,6 +73,9 @@ export async function invokeTreatments(r: TreatmentRequest): Promise<TreatmentOu
   }
   let recorded = false;
   try {
+    // Trio UnlockManager: a pump bolus needs the owner's biometrics or passcode, before anything is stored.
+    // The demo world has no real pump, so it skips the prompt.
+    if (r.amount > 0 && !r.externalInsulin && !useRuntime.getState().demo) await requireUnlock();
     if (r.carbs > 0 || r.fat > 0 || r.protein > 0) await saveMeal(r);
     if (r.amount > 0) {
       if (r.externalInsulin) {

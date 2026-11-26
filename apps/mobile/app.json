@@ -39,6 +39,12 @@
       "expo-sqlite",
       "expo-secure-store",
       [
+        "./plugins/with-xdrip",
+        {
+          "developmentTeam": "XXXXXXXXXX"
+        }
+      ],
+      [
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": true,
@@ -59,7 +65,74 @@
       [
         "expo-notifications",
         {
-          "enableBackgroundRemoteNotifications": false
+          "enableBackgroundRemoteNotifications": false,
+          "sounds": [
+            "./assets/sounds/urgent.wav",
+            "./assets/sounds/beacon.wav",
+            "./assets/sounds/pulse.wav",
+            "./assets/sounds/siren.wav",
+            "./assets/sounds/rise.wav",
+            "./assets/sounds/fall.wav",
+            "./assets/sounds/chime.wav",
+            "./assets/sounds/ticktock.wav"
+          ]
+        }
+      ],
+      "expo-audio",
+      "expo-sharing",
+      [
+        "expo-alternate-app-icons",
+        [
+          {
+            "name": "Midnight",
+            "ios": "./assets/icons/buddy-midnight.png",
+            "android": {
+              "foregroundImage": "./assets/icons/buddy-midnight-foreground.png",
+              "backgroundColor": "#06182A"
+            }
+          },
+          {
+            "name": "Daylight",
+            "ios": "./assets/icons/buddy-daylight.png",
+            "android": {
+              "foregroundImage": "./assets/icons/buddy-daylight-foreground.png",
+              "backgroundColor": "#E3EDFB"
+            }
+          },
+          {
+            "name": "Ember",
+            "ios": "./assets/icons/buddy-ember.png",
+            "android": {
+              "foregroundImage": "./assets/icons/buddy-ember-foreground.png",
+              "backgroundColor": "#F2703C"
+            }
+          }
+        ]
+      ],
+      "expo-background-task",
+      "./plugins/with-buddy-native",
+      "@bacons/apple-targets",
+      ["expo-build-properties", { "android": { "minSdkVersion": 26 } }],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Buddy checks that it may write to Apple Health.",
+          "NSHealthUpdateUsageDescription": "Buddy writes your glucose, carbs and insulin to Apple Health."
+        }
+      ],
+      "react-native-health-connect",
+      "./plugins/with-health-connect",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Buddy shows your current glucose as a calendar event.",
+          "remindersPermission": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Buddy asks for Face ID before it delivers a bolus."
         }
       ]
     ],

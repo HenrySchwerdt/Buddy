@@ -4,13 +4,13 @@ import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Host, DatePicker } from '@expo/ui/swift-ui';
 import { DateTimeCapsules } from '@/trio/android-pickers';
 import { controlSize, labelsHidden } from '@expo/ui/swift-ui/modifiers';
-import { MD_DARK, Row, T, useTrioColors } from '@/trio';
+import { Row, T, useTrioColors } from '@/trio';
 import { bolusAmountFormatter } from './formatting';
 
 const FIFTEEN_MIN = 15 * 60_000;
 
-/** iOS systemBlue (Trio); Android uses the Material primary so links and steppers match the theme. */
-export const SYSTEM_BLUE = Platform.OS === 'android' ? MD_DARK.accent : '#0A84FF';
+/** iOS systemBlue (Trio). */
+export const SYSTEM_BLUE = '#0A84FF';
 const LIGHT_BLUE = '#007AFF';
 
 /** Digits only, at most `max` characters (Trio's mealFormatter: integers, 3 digits). */

@@ -1,0 +1,30 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:1:1-16:12
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:1:1-16:12
+	package
+		INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:1:11-69
+application
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:2:3-15:17
+receiver#dev.buddy.xdripbridge.XdripBroadcastReceiver
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:8:5-14:16
+	android:exported
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:10:7-30
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:9:7-66
+intent-filter#action:name:com.eveningoutpost.dexdrip.BgEstimate
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:11:7-13:23
+action#com.eveningoutpost.dexdrip.BgEstimate
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:12:9-72
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml:12:17-69
+uses-sdk
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/xdrip-bridge/android/src/main/AndroidManifest.xml

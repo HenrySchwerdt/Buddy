@@ -131,6 +131,11 @@ export interface PumpState {
   /** Smallest temp basal step, U/h */
   readonly basalIncrement: number;
   readonly lastSync: Millis;
+  /**
+   * The pump's own clock minus the phone clock at the last sync, ms (positive = pump ahead). Only drivers that
+   * read the pump clock set it; Home shows a time-change banner when it is large.
+   */
+  readonly clockOffsetMs?: number | null;
 }
 
 export interface IobSnapshot {

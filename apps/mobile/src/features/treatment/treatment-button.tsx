@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { T, useTrioColors } from '@/trio';
 
 const SYSTEM_GRAY = '#8E8E93';
@@ -21,8 +21,7 @@ export function TreatmentButton({ label, onPress, disabled, limitExceeded }: { l
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
       }}
-      android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
-      style={({ pressed }) => [styles.button, { backgroundColor: bg, opacity: pressed && Platform.OS !== 'android' ? 0.85 : 1 }]}>
+      style={({ pressed }) => [styles.button, { backgroundColor: bg, opacity: pressed ? 0.85 : 1 }]}>
       <T style_="headline" color={bg === c.accent ? c.onAccent : '#FFFFFF'} style={{ fontSize: 18 }} numberOfLines={1} adjustsFontSizeToFit>
         {label}
       </T>

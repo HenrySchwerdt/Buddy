@@ -1,5 +1,6 @@
 import { BleManager, type Device, type Subscription } from 'react-native-ble-plx';
 import { Platform, PermissionsAndroid } from 'react-native';
+import { BLE_MANAGER_OPTIONS } from '../background-ble';
 import type { BleAdvertisement, BleConnection, BleState, BleTransport, Bytes } from '@buddy/core';
 
 /** react-native-ble-plx speaks base64; drivers speak bytes. */
@@ -7,7 +8,7 @@ const toBase64 = (b: Bytes): string => btoa(String.fromCharCode(...b));
 const fromBase64 = (s: string | null | undefined): Bytes => (s ? Uint8Array.from(atob(s), (c) => c.charCodeAt(0)) : new Uint8Array());
 
 let manager: BleManager | null = null;
-const getManager = () => (manager ??= new BleManager());
+const getManager = () => (manager ??= new BleManager(BLE_MANAGER_OPTIONS));
 
 async function ensureAndroidPermissions(): Promise<void> {
   if (Platform.OS !== 'android' || Number(Platform.Version) < 31) return;

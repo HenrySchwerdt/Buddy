@@ -12,6 +12,7 @@ export default defineConfig({
       '@buddy/simulator': pkg('simulator'),
       '@buddy/devices': pkg('devices'),
       '@buddy/nightscout': pkg('nightscout'),
+      '@buddy/tidepool': pkg('tidepool'),
     },
   },
   test: {

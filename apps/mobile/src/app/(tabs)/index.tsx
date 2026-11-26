@@ -1,29 +1,37 @@
 import { router } from 'expo-router';
-import { SymbolView } from '@/trio/symbol';
 import { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, RefreshControl, ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { computeIob, isOverrideActive, isTempTargetActive, scheduleValueAt, MINUTE } from '@buddy/core';
-import { dayStats } from '@/features/day-stats';
+import { SymbolView } from '@/trio/symbol';
+import { isOverrideActive, isTempTargetActive, MINUTE, scheduleValueAt } from '@buddy/core';
+import { adjustmentDefaults } from '@/features/adjustments/actions';
+import { fmtDelta, fmtG } from '@/features/format';
 import { upTo3 } from '@/features/history/rows';
-import { fmtDelta, fmtG, fmtTime, fmtU } from '@/features/format';
+import { AdjustmentPanel } from '@/features/home/adjustment-panel';
+import { BolusPanel } from '@/features/home/bolus-panel';
+import { useBolusProgress } from '@/features/home/bolus-progress';
+import { bobbleGlucoseColor } from '@/features/home/glucose-color';
 import { GlucoseBobble, LoopView, PumpView } from '@/features/home/header';
+import { BOTTOM_ZONE_H, CHART_MIN_H, HEADER_H, MEAL_H, ZONE_PAD } from '@/features/home/layout';
 import { MainChart } from '@/features/home/main-chart';
+import { MealSlot } from '@/features/home/meal-slot';
+import { PanelBanner } from '@/features/home/multi-use-panel-view';
+import { resolveMultiUsePanel } from '@/features/home/multi-use-panel';
+import { useNotificationsEnabled } from '@/features/settings-b/use-notification-permission';
+import { useHomePrefs } from '@/features/home/prefs';
+import { useSensorLifecycle } from '@/features/home/sensor-lifecycle-hook';
+import { StatsBanner } from '@/features/home/stats-banner';
+import { statsPanelStats } from '@/features/home/stats-panel';
 import { useLiveState, useSnapshot } from '@/runtime/hooks';
 import { runLoop, useRuntime } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';
-import { GlassChip, GlassPanel, T, TAB_BAR_SPACE, TrioBackground, trioGlucoseColor, useTrioColors } from '@/trio';
+import { dosingModeMiniHint } from '@/features/settings/dosing-mode';
+import { GlassChip, T, TAB_BAR_SPACE, TrioBackground, useTrioColors } from '@/trio';
 
-/** Fixed zone heights from Trio's HomeLayout; the chart takes the rest. */
-const HEADER_H = 172;
-const MEAL_H = 44;
-const PANEL_H = 60;
-const ZONE_PAD = 10;
-const BOTTOM_ZONE = PANEL_H * 2 + ZONE_PAD * 3;
-const LOW = 70;
-const HIGH = 180;
+/** Home dashboard: 1:1 layout of Trio dev's HomeRootView. Pull down to force a loop. */
+/** Pump clock offset that counts as a time change (Trio flags the pump status badge). */
+const PUMP_CLOCK_MISMATCH_MS = 60_000;
 
-/** Home dashboard — 1:1 layout of Trio dev's HomeRootView. Pull down to force a loop. */
 export default function HomeScreen() {
   const c = useTrioColors();
   const insets = useSafeAreaInsets();
@@ -33,6 +41,10 @@ export default function HomeScreen() {
   const live = useLiveState();
   const rt = useRuntime();
   const s = useSettings();
+  const prefs = useHomePrefs();
+  const bolus = useBolusProgress();
+  const notificationsDisabled = useNotificationsEnabled() === false;
+  const lifecycle = useSensorLifecycle();
 
   const lastRun = snap.loopRuns.at(-1) ?? null;
   const lastOk = [...snap.loopRuns].reverse().find((r) => !r.error) ?? null;
@@ -44,8 +56,37 @@ export default function HomeScreen() {
   const rate = rt.pump?.suspended ? null : temp ? temp.rate : scheduleValueAt(s.profile.basal, live.now, s.profile.utcOffsetMinutes);
   const override = isOverrideActive(s.override, live.now) ? s.override : null;
   const tempTarget = isTempTargetActive(s.tempTarget, live.now) ? s.tempTarget : null;
-  const stats = useMemo(() => dayStats(snap.glucose, live.now), [snap.glucose, live.now]);
-  const chartH = Math.max(140, h - HEADER_H - MEAL_H - BOTTOM_ZONE - TAB_BAR_SPACE + 6);
+  const target = scheduleValueAt(s.profile.target, live.now, s.profile.utcOffsetMinutes);
+  const colorOpts = { scheme: prefs.scheme, low: prefs.low, high: prefs.high, target: (target.low + target.high) / 2 };
+  const stats = useMemo(() => statsPanelStats(snap.glucose, prefs.statsRange, live.now, prefs.tirType), [snap.glucose, prefs.statsRange, prefs.tirType, live.now]);
+  const adjust = useMemo(() => adjustmentDefaults(), [s.algorithmId, s.algorithmSettings]);
+  const chartH = Math.max(CHART_MIN_H, h - HEADER_H - MEAL_H - BOTTOM_ZONE_H - TAB_BAR_SPACE + 6);
+  const basalBand = chartH * 0.1;
+  const panel = resolveMultiUsePanel({
+    notificationsDisabled,
+    pumpTimeMismatch: Math.abs(rt.pump?.clockOffsetMs ?? 0) > PUMP_CLOCK_MISMATCH_MS,
+    lastGlucoseDate: live.last?.date ?? null,
+    maxIOB: s.limits.maxIOB,
+    dosingModeLimited: !!rt.closedLoopBlocked && s.loopMode === 'closed',
+    now: live.now,
+  });
+
+  const multiUse = () => {
+    switch (panel) {
+      case 'notificationsDisabled':
+        return <PanelBanner icon="bell.slash.fill" title="Notifications Disabled" subtitle="Alarms cannot alert you. Tap to fix." tint={c.red} critical onPress={() => void Linking.openSettings()} />;
+      case 'pumpTimeMismatch':
+        return <PanelBanner icon="clock.badge.exclamationmark.fill" title="Time Change Detected" subtitle="Pump clock differs from phone. Tap to review." tint={c.orange} onPress={() => router.push('/pump-settings')} />;
+      case 'cgmStale':
+        return <PanelBanner icon="drop.fill" title="No Recent Glucose" subtitle="Tap to add a fingerstick reading." tint={c.orange} onPress={() => router.push('/add-glucose')} />;
+      case 'maxIOBZero':
+        return <PanelBanner icon="exclamationmark.triangle.fill" title="Max IOB is 0 U" subtitle="Automated dosing is limited. Tap to review." tint={c.orange} onPress={() => router.push('/settings/units-limits')} />;
+      case 'dosingModeLimited':
+        return <PanelBanner icon="circle.dashed" title="Open Loop" subtitle={dosingModeMiniHint('open', rt.closedLoopBlocked)} tint={c.orange} onPress={() => router.push('/settings')} />;
+      case 'stats':
+        return <StatsBanner face={prefs.statsFace} range={prefs.statsRange} stats={stats} units={s.units} a1cUnit={prefs.a1cUnit} onPress={() => router.push('/statistics')} />;
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -59,21 +100,17 @@ export default function HomeScreen() {
         {/* Header: pump | glucose bobble | loop */}
         <View style={[styles.header, { height: HEADER_H }]}>
           <View style={{ flex: 1, alignItems: 'flex-start' }}>
-            <PumpView
-              hasPump={!!rt.pump}
-              reservoir={rt.pump?.reservoirUnits ?? null}
-              battery={rt.pump?.batteryPercent ?? null}
-              onPress={() => router.push(rt.pump ? '/pump-settings' : '/add-pump')}
-            />
+            <PumpView hasPump={!!rt.pump} reservoir={rt.pump?.reservoirUnits ?? null} battery={rt.pump?.batteryPercent ?? null} onPress={() => router.push(rt.pump ? '/pump-settings' : '/add-pump')} />
           </View>
           <GlucoseBobble
             empty={!s.cgmId}
             value={bg === null ? '--' : fmtG(bg, s.units)}
-            color={bg === null ? c.primary : trioGlucoseColor(c, bg, LOW, HIGH)}
+            color={bg === null ? c.primary : bobbleGlucoseColor(bg, colorOpts, c.primary)}
             trend={live.last?.trend ?? 'unknown'}
             ago={live.minutesAgo === null ? '--' : live.minutesAgo < 1 ? '< 1 min' : `${live.minutesAgo} min`}
             delta={live.status ? fmtDelta(live.status.delta, s.units) : ''}
             stale={stale && snap.glucose.length > 0}
+            lifecycle={lifecycle}
             onPress={() => router.push(s.cgmId ? '/cgm-settings' : '/add-cgm')}
           />
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
@@ -88,31 +125,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Meal slot: IOB / COB / alarms, or the chart readout while scrubbing */}
-        <View style={[styles.meal, { height: MEAL_H }]}>
-          {scrub === null ? (
-            <>
-              <View style={styles.mealItem} accessible accessibilityLabel={`Insulin on board ${fmtU(live.iob.iob)} units`}>
-                <SymbolView name="syringe.fill" size={22} tintColor={c.insulin} />
-                <T style_="callout" rounded weight="700" size={18}>
-                  {fmtIob(live.iob.iob)} U
-                </T>
-              </View>
-              <View style={styles.mealItem} accessible accessibilityLabel={`Carbs on board ${Math.round(live.cob)} grams`}>
-                <SymbolView name="fork.knife" size={22} tintColor={c.carbs} />
-                <T style_="callout" rounded weight="700" size={18}>
-                  {Math.round(live.cob)} g
-                </T>
-              </View>
-              <View style={{ flex: 1 }} />
-              <Pressable onPress={() => router.push('/settings/notifications')} accessibilityRole="button" accessibilityLabel="Alarms" style={[styles.bell, { borderColor: c.secondary }]}>
-                <SymbolView name="bell.fill" size={18} tintColor={c.primary} />
-              </Pressable>
-            </>
-          ) : (
-            <ScrubReadout t={scrub} />
-          )}
-        </View>
+        <MealSlot scrub={scrub} live={{ iob: live.iob.iob, cob: live.cob, now: live.now }} selection={{ glucose: snap.glucose, runs: snap.loopRuns, units: s.units, colors: colorOpts }} />
 
         {/* Chart with basal capsule and info button */}
         <View style={{ height: chartH }}>
@@ -120,136 +133,43 @@ export default function HomeScreen() {
             c={c}
             now={live.now}
             height={chartH}
-            hoursBack={6}
             glucose={snap.glucose}
             doses={snap.doses}
             carbs={snap.carbs}
+            runs={snap.loopRuns}
             predictions={lastOk?.suggested?.predictions}
             predictionStart={lastOk?.date}
             profile={s.profile}
             units={s.units}
-            low={LOW}
-            high={HIGH}
+            prefs={prefs}
+            override={override}
+            tempTarget={tempTarget}
             onScrub={setScrub}
           />
           {rate !== null || rt.pump?.suspended ? (
-            <GlassChip style={styles.rateChip}>
-              <T style_="subheadline" rounded weight="600" color={temp ? c.insulin : c.insulin}>
+            <GlassChip style={[styles.rateChip, { top: Math.max(0, (basalBand - 26) / 2) }]}>
+              <T style_="subheadline" rounded weight="600" color={c.insulin}>
                 {rt.pump?.suspended ? 'Suspended' : `${upTo3(rate!)} U/hr`}
               </T>
             </GlassChip>
           ) : null}
-          <Pressable onPress={() => router.push('/legend')} accessibilityRole="button" accessibilityLabel="Chart legend" style={[styles.info, { borderColor: c.secondary }]}>
-            <SymbolView name="info" size={18} tintColor={c.primary} weight="bold" />
+          <Pressable onPress={() => router.push('/legend')} accessibilityRole="button" accessibilityLabel="Chart legend" style={[styles.info, { borderColor: `${c.primary}66` }]}>
+            <SymbolView name="info" size={16} tintColor={c.primary} weight="semibold" />
           </Pressable>
         </View>
 
-        {/* Bottom zone: adjustment panel + multi-use stats banner */}
+        {/* Bottom zone: adjustment / bolus panel above the multi-use panel */}
         <View style={{ paddingHorizontal: ZONE_PAD, gap: ZONE_PAD, paddingTop: ZONE_PAD }}>
-          <Pressable onPress={() => router.push('/adjustments')} accessibilityRole="button">
-            <GlassPanel tint={override ? c.zt : tempTarget ? c.loopGreen : undefined} style={styles.panel}>
-              <View style={[styles.panelIcon, { backgroundColor: c.fill }]}>
-                <SymbolView name="slider.horizontal.2.gobackward" size={18} tintColor={override || tempTarget ? c.primary : c.secondary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <T style_="headline" weight="500" secondary={!override && !tempTarget} numberOfLines={1}>
-                  {override ? override.name : tempTarget ? tempTarget.name : 'No Active Adjustment'}
-                </T>
-                <T style_="subheadline" secondary numberOfLines={1}>
-                  {override
-                    ? `${override.percentage} %${override.target ? ` · ${fmtG(override.target, s.units)} ${s.units}` : ''} · ${override.durationMin === null ? 'Indefinitely' : `until ${fmtTime(override.startedAt + override.durationMin * MINUTE)}`}`
-                    : tempTarget
-                      ? `${fmtG(tempTarget.target, s.units)} ${s.units} · until ${fmtTime(tempTarget.startedAt + tempTarget.durationMin * MINUTE)}`
-                      : 'Profile at 100 %'}
-                </T>
-              </View>
-            </GlassPanel>
-          </Pressable>
-          <Pressable onPress={() => router.push('/statistics')} accessibilityRole="button">
-            {stats ? (
-              <GlassPanel style={styles.panel}>
-                <View style={{ flex: 1, gap: 6 }}>
-                  <View style={styles.statsLine}>
-                    <T style_="subheadline" secondary>
-                      Time in Range
-                    </T>
-                    <T style_="headline" rounded color={c.loopGreen}>
-                      {Math.round(stats.tir)} %
-                    </T>
-                  </View>
-                  <View style={[styles.tirBar, { backgroundColor: c.fill }]}>
-                    <View style={{ flex: stats.tbr70, backgroundColor: c.loopRed }} />
-                    <View style={{ flex: stats.tir, backgroundColor: c.loopGreen }} />
-                    <View style={{ flex: stats.tar180, backgroundColor: c.loopYellow }} />
-                  </View>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <T style_="caption" secondary>
-                    Average
-                  </T>
-                  <T style_="headline" rounded>
-                    {fmtG(stats.mean, s.units)}
-                  </T>
-                </View>
-              </GlassPanel>
-            ) : (
-              <GlassPanel tint={c.orange} style={styles.panel}>
-                <View style={[styles.panelIcon, { backgroundColor: `${c.orange}33` }]}>
-                  <SymbolView name="drop.fill" size={18} tintColor={c.orange} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <T style_="headline" weight="500">
-                    No Recent Glucose
-                  </T>
-                  <T style_="subheadline" secondary>
-                    Tap to add a fingerstick reading.
-                  </T>
-                </View>
-                <SymbolView name="chevron.right" size={14} tintColor={c.secondary} />
-              </GlassPanel>
-            )}
-          </Pressable>
+          {bolus ? <BolusPanel bolus={bolus} /> : <AdjustmentPanel override={override} tempTarget={tempTarget} now={live.now} units={s.units} defaults={adjust} behavior={adjust.behavior} onOpen={() => router.push('/adjustments')} />}
+          {multiUse()}
         </View>
       </ScrollView>
     </View>
   );
 }
 
-const fmtIob = (u: number) => (Math.abs(u) < 0.005 ? '0' : u.toFixed(2).replace(/0$/, ''));
-
-function ScrubReadout({ t }: { t: number }) {
-  const c = useTrioColors();
-  const snap = useSnapshot();
-  const { profile, units } = useSettings();
-  const reading = snap.glucose.reduce<(typeof snap.glucose)[number] | null>((b, g) => (!b || Math.abs(g.date - t) < Math.abs(b.date - t) ? g : b), null);
-  const iob = computeIob(snap.doses.filter((d) => d.date <= t), profile, t).iob;
-  return (
-    <>
-      <T style_="callout" rounded weight="700" secondary>
-        {fmtTime(t)}
-      </T>
-      <T style_="callout" rounded weight="700" color={reading ? trioGlucoseColor(c, reading.value, LOW, HIGH) : c.primary}>
-        {fmtG(reading?.value, units)} {units}
-      </T>
-      <View style={styles.mealItem}>
-        <SymbolView name="syringe.fill" size={18} tintColor={c.insulin} />
-        <T style_="callout" rounded weight="700">
-          {fmtIob(iob)} U
-        </T>
-      </View>
-    </>
-  );
-}
-
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
-  meal: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 28 },
-  mealItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bell: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  rateChip: { position: 'absolute', top: 6, right: 16, paddingHorizontal: 10, paddingVertical: 4 },
-  info: { position: 'absolute', right: 16, bottom: 34, width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  panel: { height: PANEL_H, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14 },
-  panelIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  statsLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  tirBar: { height: 8, borderRadius: 4, overflow: 'hidden', flexDirection: 'row' },
+  rateChip: { position: 'absolute', right: 16, paddingHorizontal: 10, paddingVertical: 3 },
+  info: { position: 'absolute', right: 16, bottom: 34, width: 32, height: 32, borderRadius: 16, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });

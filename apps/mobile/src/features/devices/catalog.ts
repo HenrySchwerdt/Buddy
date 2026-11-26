@@ -63,9 +63,10 @@ const cgm = (e: Omit<CatalogEntry, 'kind'>): CatalogEntry => ({ ...e, kind: 'cgm
 export const PUMP_CATALOG: readonly CatalogEntry[] = [
   pump({ id: 'Omni', manufacturer: 'Insulet', name: 'Omnipod DASH', supportedModels: [], image: 'omnipod-dash', pluginIds: ['omnipod-dash'] }),
   pump({ id: 'OmniEros', manufacturer: 'Insulet', name: 'Omnipod Classic', supportedModels: ['Eros, needs a RileyLink'], image: 'omnipod', pluginIds: ['omnipod-eros'] }),
-  pump({ id: 'Minimed500', manufacturer: 'Medtronic', name: 'MiniMed', supportedModels: ['x15', 'x22', 'x23', 'x54'], image: 'minimed', templateImage: true, pluginIds: [] }),
+  pump({ id: 'Minimed500', manufacturer: 'Medtronic', name: 'MiniMed', supportedModels: ['x15', 'x22', 'x23', 'x54'], image: 'minimed', templateImage: true, pluginIds: ['minimed'] }),
   pump({ id: 'Medtrum', manufacturer: 'Medtrum', name: 'Medtrum Nano', supportedModels: ['200U', '300U'], image: 'medtrum-nano', pluginIds: ['medtrum-nano'] }),
   pump({ id: 'Dana', manufacturer: 'SOOIL', name: 'Dana', supportedModels: ['DanaRS', 'Dana-i'], image: 'dana', pluginIds: ['dana-i'] }),
+  pump({ id: 'Insight', manufacturer: 'Roche', name: 'Accu-Chek Insight', supportedModels: ['via InsightBridge'], image: 'insight', pluginIds: ['accu-chek-insight'] }),
   pump({ id: 'MockPumpManager', manufacturer: 'Simulator', name: 'Pump Simulator', supportedModels: [], image: 'pump-simulator', templateImage: true, pluginIds: ['demo-pump'] }),
 ];
 
@@ -81,7 +82,7 @@ export const CGM_CATALOG: readonly CatalogEntry[] = [
   cgm({ id: 'SyaiCGMManager', manufacturer: 'Syai', name: 'Syai Ultra', supportedModels: [], image: 'syai', pluginIds: ['syai-ultra'] }),
   cgm({ id: 'nightscout', manufacturer: 'Other Sources', name: 'Nightscout as CGM', supportedModels: [], image: 'nightscout', templateImage: true, pluginIds: ['nightscout-cgm'] }),
   cgm({ id: 'dexcomShare', manufacturer: 'Other Sources', name: 'Dexcom Share', supportedModels: [], image: 'dexcom-share', templateImage: true, pluginIds: ['dexcom-share'] }),
-  cgm({ id: 'xdrip', manufacturer: 'Other Sources', name: 'xDrip4iOS', supportedModels: [], image: 'xdrip', templateImage: true, pluginIds: [] }),
+  cgm({ id: 'xdrip', manufacturer: 'Other Sources', name: 'xDrip4iOS / xDrip+', supportedModels: [], image: 'xdrip', templateImage: true, pluginIds: ['xdrip'] }),
   cgm({ id: 'simulator', manufacturer: 'Simulator', name: 'Glucose Simulator', supportedModels: [], image: 'cgm-simulator', templateImage: true, pluginIds: ['demo-cgm'] }),
 ];
 

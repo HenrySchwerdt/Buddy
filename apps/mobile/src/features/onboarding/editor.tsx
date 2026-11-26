@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from '@/trio/symbol';
 import { Fragment, useState } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { choose } from '@/trio/choice-dialog';
 import { TIME_VALUES, addItem, cannotAddMore, fmtClock, type TherapyItem } from './logic';
 import { OB, OT } from './theme';
 import { WheelPicker } from './wheel';
@@ -26,11 +27,7 @@ export function TherapySettingEditor({ items, onChange, options, format, unit }:
       setSelected(null);
       onChange(items.filter((i) => i.id !== item.id));
     };
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options: ['Delete', 'Cancel'], destructiveButtonIndex: 0, cancelButtonIndex: 1 }, (i) => i === 0 && remove());
-    } else {
-      Alert.alert('Delete', undefined, [{ text: 'Delete', style: 'destructive', onPress: remove }, { text: 'Cancel', style: 'cancel' }]);
-    }
+    void choose({ items: [{ label: 'Delete', destructive: true }] }).then((i) => i === 0 && remove());
   };
 
   return (

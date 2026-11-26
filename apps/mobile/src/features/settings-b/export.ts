@@ -1,3 +1,6 @@
+import type { TherapyProfile } from '@buddy/core';
+import type { MealPreset } from '@/features/treatment/presets-store';
+import type { ProfileSchedules, StoredProfile } from '@/features/settings/profiles';
 import type { AppSettings } from '@/runtime/settings-store';
 
 /**
@@ -23,8 +26,8 @@ export const EXPORT_CATEGORIES = [
 
 export type ExportCategory = (typeof EXPORT_CATEGORIES)[number];
 
-/** Categories without a Buddy counterpart yet. */
-export const UNAVAILABLE_CATEGORIES: ReadonlySet<ExportCategory> = new Set(['Therapy Profiles', 'Meal Presets']);
+/** Categories without a Buddy counterpart (none: every Trio category is exportable). */
+export const UNAVAILABLE_CATEGORIES: ReadonlySet<ExportCategory> = new Set();
 
 export const AVAILABLE_CATEGORIES = EXPORT_CATEGORIES.filter((c) => !UNAVAILABLE_CATEGORIES.has(c));
 
@@ -45,7 +48,24 @@ export function stripSecrets(value: unknown): unknown {
 
 type Section = Record<string, unknown>;
 
-function sectionFor(category: ExportCategory, s: AppSettings, meta: { appVersion: string; exportedAt: string }): Section | null {
+/** Data that lives outside AppSettings (their own stores). */
+export interface ExportExtras {
+  readonly mealPresets: readonly MealPreset[];
+  readonly profiles: { readonly activeName: string; readonly stored: readonly StoredProfile[]; readonly live: TherapyProfile };
+}
+
+export const EMPTY_EXTRAS: ExportExtras = { mealPresets: [], profiles: { activeName: 'Default', stored: [], live: { basal: [], isf: [], carbRatio: [], target: [], diaHours: 0, insulinCurve: 'rapid-acting' } } };
+
+const schedules = (p: ProfileSchedules): ProfileSchedules => ({ basal: p.basal, isf: p.isf, carbRatio: p.carbRatio, target: p.target });
+
+/** All named profiles, Default first, the active one showing the live schedules (as the Therapy Profiles screen lists them). */
+export function profilesForExport(x: ExportExtras['profiles']): StoredProfile[] {
+  const live = schedules(x.live);
+  const list = x.stored.some((p) => p.name === 'Default') ? [...x.stored] : [{ name: 'Default', ...live }, ...x.stored];
+  return list.map((p) => (p.name === x.activeName ? { ...p, ...live } : p));
+}
+
+function sectionFor(category: ExportCategory, s: AppSettings, meta: { appVersion: string; exportedAt: string }, extras: ExportExtras): Section | null {
   switch (category) {
     case 'Metadata':
       return { app: 'Buddy', appVersion: meta.appVersion, exportedAt: meta.exportedAt, format: 'buddy.settings-export.v1' };
@@ -63,19 +83,23 @@ function sectionFor(category: ExportCategory, s: AppSettings, meta: { appVersion
       return { nightscout: { url: s.nightscoutUrl, upload: s.nightscoutUpload } };
     case 'Temp Target Presets':
       return { tempTargetPresets: s.tempTargetPresets };
+    case 'Therapy Profiles':
+      return { activeProfile: extras.profiles.activeName, profiles: profilesForExport(extras.profiles) };
     case 'Override Presets':
       return { overridePresets: s.overridePresets };
+    case 'Meal Presets':
+      return { mealPresets: [...extras.mealPresets].sort((a, b) => a.dish.localeCompare(b.dish)).map(({ dish, carbs, fat, protein }) => ({ dish, carbs, fat, protein })) };
     default:
       return null;
   }
 }
 
 /** Builds the export JSON for the selected categories (live state like snoozes is excluded). */
-export function buildSettingsExport(s: AppSettings, selected: ReadonlySet<ExportCategory>, meta: { appVersion: string; exportedAt: string }): string {
+export function buildSettingsExport(s: AppSettings, selected: ReadonlySet<ExportCategory>, meta: { appVersion: string; exportedAt: string }, extras: ExportExtras = EMPTY_EXTRAS): string {
   const out: Record<string, Section> = {};
   for (const category of EXPORT_CATEGORIES) {
     if (!selected.has(category)) continue;
-    const section = sectionFor(category, s, meta);
+    const section = sectionFor(category, s, meta, extras);
     if (section) out[category] = stripSecrets(section) as Section;
   }
   return JSON.stringify(out, null, 2);

@@ -8,6 +8,7 @@ export type AndroidSymbolName = string;
 const ANDROID: Readonly<Record<string, AndroidSymbolName>> = {
   'alarm.waves.left.and.right.fill': 'alarm',
   'app.badge.fill': 'notifications_active',
+  'arrow.clockwise.circle': 'refresh',
   'arrow.right': 'arrow_forward',
   'arrow.right.circle': 'arrow_circle_right',
   'arrow.up.right': 'north_east',
@@ -18,6 +19,7 @@ const ANDROID: Readonly<Record<string, AndroidSymbolName>> = {
   'battery.75': 'battery_6_bar',
   'bell.badge.fill': 'notifications_unread',
   'bell.fill': 'notifications',
+  'bell.slash.fill': 'notifications_off',
   bold: 'format_bold',
   'bolt.fill': 'bolt',
   'book.pages': 'menu_book',
@@ -26,11 +28,13 @@ const ANDROID: Readonly<Record<string, AndroidSymbolName>> = {
   'chart.xyaxis.line': 'show_chart',
   'checklist.unchecked': 'checklist',
   checkmark: 'check',
+  'chevron.right.2': 'keyboard_double_arrow_right',
   'checkmark.circle.fill': 'check_circle',
+  'clock.badge.exclamationmark.fill': 'schedule',
   'checkmark.square.fill': 'check_box',
   'chevron.left': 'arrow_back',
   'chevron.right': 'chevron_right',
-  'chevron.up.chevron.down': 'arrow_drop_down',
+  'chevron.up.chevron.down': 'unfold_more',
   circle: 'circle',
   'circle.circle': 'radio_button_checked',
   'circle.dashed': 'motion_photos_off',
@@ -91,7 +95,10 @@ const ANDROID: Readonly<Record<string, AndroidSymbolName>> = {
   'sensor.tag.radiowaves.forward.fill': 'sensors',
   'slider.horizontal.2.gobackward': 'tune',
   'slider.horizontal.3': 'tune',
+  'speaker.slash.fill': 'volume_off',
   'speaker.wave.2.fill': 'volume_up',
+  'stop.circle.fill': 'stop_circle',
+  'play.circle.fill': 'play_circle',
   square: 'check_box_outline_blank',
   'square.and.arrow.up': 'share',
   'square.and.pencil': 'edit_square',
@@ -104,18 +111,13 @@ const ANDROID: Readonly<Record<string, AndroidSymbolName>> = {
   triangle: 'change_history',
   'waveform.path.ecg.rectangle': 'monitor_heart',
   xmark: 'close',
+  'xmark.app': 'cancel_presentation',
   'xmark.circle.fill': 'cancel',
   zzz: 'snooze',
 };
 
 /** Material Symbol for an SF Symbol name (exported for tests). */
 export const androidSymbolFor = (name: string): AndroidSymbolName => ANDROID[name] ?? 'help';
-
-/**
- * Glyphs whose Material counterpart needs a different size: Android menus use a 24 dp drop-down
- * triangle where iOS draws a small 13 pt up/down chevron pair.
- */
-export const ANDROID_SIZE: Readonly<Record<string, number>> = { 'chevron.up.chevron.down': 24 };
 
 export const SF_SYMBOLS_WITH_ANDROID = Object.keys(ANDROID);
 

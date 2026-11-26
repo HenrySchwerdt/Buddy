@@ -60,6 +60,8 @@ export function toNetPulses(doses: readonly InsulinDose[], profile: TherapyProfi
   const sorted = [...doses].sort((a, b) => a.date - b.date);
   const basalEvents = sorted.filter((d) => d.kind === 'tempBasal' || d.kind === 'suspend');
   const pulses: InsulinPulse[] = [];
+  // `sorted` and `basalEvents` are both ordered by date, so the next basal event only moves forward (O(n), not O(n²)).
+  let nextBasal = 0;
 
   for (const dose of sorted) {
     if (dose.date > now) continue;
@@ -68,7 +70,8 @@ export function toNetPulses(doses: readonly InsulinDose[], profile: TherapyProfi
       continue;
     }
     if (dose.kind !== 'tempBasal' && dose.kind !== 'suspend') continue;
-    const next = basalEvents.find((e) => e.date > dose.date);
+    while (nextBasal < basalEvents.length && basalEvents[nextBasal]!.date <= dose.date) nextBasal++;
+    const next = basalEvents[nextBasal];
     const end = Math.min(dose.date + dose.durationMin * MINUTE, next ? next.date : Infinity, now);
     for (let t = dose.date; t < end; t += BASAL_CHUNK_MIN * MINUTE) {
       const chunkEnd = Math.min(t + BASAL_CHUNK_MIN * MINUTE, end);
@@ -97,8 +100,19 @@ export function iobFromPulses(pulses: readonly InsulinPulse[], model: InsulinMod
   return { date: at, iob: bolusIob + basalIob, bolusIob, basalIob, activity };
 }
 
+/**
+ * Doses older than this no longer matter for IOB (insulin action is at most 8 h, a temp basal at most a few hours), so
+ * the long history the app keeps (months) is not walked on every call.
+ */
+export const IOB_LOOKBACK_MS = 24 * 3_600_000;
+
+const recentDoses = (doses: readonly InsulinDose[], at: Millis): readonly InsulinDose[] => {
+  const since = at - IOB_LOOKBACK_MS;
+  return doses.some((d) => d.date < since) ? doses.filter((d) => d.date >= since) : doses;
+};
+
 export function computeIob(doses: readonly InsulinDose[], profile: TherapyProfile, at: Millis): IobSnapshot {
-  return iobFromPulses(toNetPulses(doses, profile, at), insulinModelFor(profile), at);
+  return iobFromPulses(toNetPulses(recentDoses(doses, at), profile, at), insulinModelFor(profile), at);
 }
 
 /**
@@ -113,7 +127,7 @@ export function projectIob(
   zeroTempFromNow = false,
 ): IobSnapshot[] {
   const model = insulinModelFor(profile);
-  const pulses = toNetPulses(doses, profile, now);
+  const pulses = toNetPulses(recentDoses(doses, now), profile, now);
   const extra: InsulinPulse[] = [];
   if (zeroTempFromNow) {
     for (let t = now; t < now + horizonMinutes * MINUTE; t += BASAL_CHUNK_MIN * MINUTE) {

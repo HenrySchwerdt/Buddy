@@ -1,12 +1,10 @@
 import type { PropsWithChildren, ReactNode } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { T, useTrioColors } from '@/trio';
 
 /** Grouped-list surfaces of a plain SwiftUI sheet (PopupView does not use Trio's chart colour). */
 export function useSheetSurfaces() {
   const c = useTrioColors();
-  // Android: Material surface roles (background / surface container) instead of iOS grouped greys.
-  if (Platform.OS === 'android') return { background: c.bgBottom, card: c.chart };
   return c.dark ? { background: '#1C1C1E', card: '#2C2C2E' } : { background: '#F2F2F7', card: '#FFFFFF' };
 }
 

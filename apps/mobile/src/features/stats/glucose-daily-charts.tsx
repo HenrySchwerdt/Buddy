@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { G, Line, Rect } from 'react-native-svg';
 import type { GlucoseReading, GlucoseUnit } from '@buddy/core';
 import { T } from '@/trio';
-import { dailyGlucose, distributionBands, intervalStart, type Bucket, type Interval } from './calc';
+import { aggregateVisibleDays, dailyGlucose, dayPercentiles, distributionBands, intervalStart, type Bucket, type Interval, type PercentileKey } from './calc';
+import { GlucosePercentileDetail } from './glucose-percentile-detail';
 import { BAND_COLORS, bandLegend } from './glucose-distribution-chart';
 import { DYN, SYS, alpha, glucoseValue, inUnits, pctUpToOne } from './format';
 import { bucketTitle, formatVisibleRange } from './range-label';
@@ -21,13 +22,21 @@ interface Props {
 }
 
 const BOX = ['min', 'p10', 'p25', 'median', 'p75', 'p90', 'max'] as const;
+const fullDate = (t: number) => new Date(t).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
 /** GlucoseDailyPercentileChart: one box plot per day (10/25/50/75/90 %). */
 export function GlucoseDailyPercentileChart({ readings, units, bottom, highLimit, interval, now }: Props) {
   const days = useMemo(() => dailyGlucose(readings, intervalStart('total', now), now), [readings, now]);
   const buckets: Bucket[] = days.map((d) => ({ date: d.day, values: BOX.map((k) => d[k]) }));
   const [range, setRange] = useState({ start: now, end: now });
+  const [heldDay, setHeldDay] = useState<number | null>(null);
+  const [percentile, setPercentile] = useState<PercentileKey | null>(null);
   const maxV = Math.max(highLimit, ...days.map((d) => d.p90));
+  // Detail: the held day, else the aggregate of the visible days (Trio's detailViewData).
+  const held = heldDay === null ? undefined : days.find((d) => d.day === heldDay);
+  const detail = held ? dayPercentiles(held) : aggregateVisibleDays(days, range);
+  const detailTitle = held ? fullDate(held.day) : formatVisibleRange(range.start, range.end, interval);
+  useEffect(() => setPercentile(null), [interval]);
   return (
     <View style={{ gap: 8 }}>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -45,6 +54,7 @@ export function GlucoseDailyPercentileChart({ readings, units, bottom, highLimit
         yDomain={[inUnits(40, units), inUnits(maxV, units)]}
         yLabel={(v) => (units === 'mg/dL' ? v.toFixed(0) : v.toFixed(1))}
         onRangeChange={setRange}
+        onSelect={(b) => setHeldDay(b ? b.date : null)}
         accessibilityLabel="Daily glucose percentile chart"
         renderBar={(b, x, w, y, dim) => {
           const [, p10, p25, med, p75, p90] = b.values.map((v) => inUnits(v, units));
@@ -56,6 +66,9 @@ export function GlucoseDailyPercentileChart({ readings, units, bottom, highLimit
               <Line x1={cx} x2={cx} y1={y(p90!)} y2={y(p10!)} stroke={alpha(SYS.blue, 0.6)} strokeWidth={1} />
               <Rect x={x} y={y(p75!)} width={w} height={Math.max(1, y(p25!) - y(p75!))} fill={alpha(SYS.blue, 0.5)} />
               <Line x1={x} x2={x + w} y1={y(med)} y2={y(med)} stroke={SYS.blue} strokeWidth={2} />
+              {percentile && b.values[BOX.indexOf(percentile)] ? (
+                <Line x1={x} x2={x + w} y1={y(inUnits(b.values[BOX.indexOf(percentile)]!, units))} y2={y(inUnits(b.values[BOX.indexOf(percentile)]!, units))} stroke={SYS.purple} strokeWidth={2} />
+              ) : null}
             </G>
           );
         }}
@@ -84,6 +97,7 @@ export function GlucoseDailyPercentileChart({ readings, units, bottom, highLimit
           </ChartPopover>
         )}
       />
+      <GlucosePercentileDetail data={detail} title={detailTitle} units={units} selected={percentile} onSelect={setPercentile} />
       <Legend
         columns={3}
         items={[

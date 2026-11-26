@@ -29,26 +29,25 @@ built with React Native / Expo (TypeScript) as a port of [Trio](https://github.c
 
 | Kind | Plugins |
 | --- | --- |
-| Pumps | Demo pump (virtual patient), Follow Trio via Nightscout (shadow mode, read-only), Dana-i / Dana RS, Medtrum Nano, Omnipod DASH, Omnipod Classic (Eros) via RileyLink |
-| CGMs | Demo CGM, Nightscout, Dexcom Share, Dexcom G5 / G6, Dexcom G7, Libre 1 / 2 (direct or transmitter), Libre 3 direct (needs your own app credential) and via LibreLinkUp, Syai Ultra |
+| Pumps | Demo pump (virtual patient), Follow Trio via Nightscout (shadow mode, read-only), Dana-i / Dana RS, Medtrum Nano, Omnipod DASH, Omnipod Classic (Eros) via RileyLink, Medtronic MiniMed via RileyLink, Accu-Chek Insight via InsightBridge |
+| CGMs | Demo CGM, Nightscout, Dexcom Share, Dexcom G5 / G6, Dexcom G7, Libre 1 / 2 (direct or transmitter), Libre 3 direct (needs your own app credential) and via LibreLinkUp, Syai Ultra, xDrip4iOS (iOS app group) / xDrip+ (Android broadcast) |
 
-Not supported: MiniMed, Eversense, Accu-Chek SmartGuide (their Swift kits carry no licence, so neither code nor artwork is used) and xDrip4iOS.
+Not supported: Eversense and Accu-Chek SmartGuide. Their Swift kits carry no licence, so neither code nor artwork is used. MiniMed is ported from the MIT-licensed rileylink_ios code that MinimedKit was migrated from.
 
-Hardware drivers are TypeScript ports of MIT-licensed Swift drivers (DanaKit, MedtrumKit, OmnipodKit, RileyLinkKit,
-RoundWhiteDiscKit / LibreLoop, SyaiKit, as used by Trio) and are
+Hardware drivers are TypeScript ports of the Swift drivers Trio uses (DanaKit, MedtrumKit, OmnipodKit, RileyLinkKit,
+MinimedKit / rileylink_ios, InsightKit, RoundWhiteDiscKit / LibreLoop, SyaiKit) and are
 **experimental**: verified against protocol simulators and the original test vectors, not yet
-on hardware. Pumps need the in-app hardware check before closed loop (see above).
+on hardware.
 
 ## User interface
 
 - **iOS** follows Trio dev 1:1: same screens, copy and order, using SwiftUI controls through
   `@expo/ui` where Trio does.
-- **Android** is Material 3 through platform branches, not a separate app: `Platform.OS`
-  checks in `apps/mobile/src/trio/*`, `.android.tsx` twins (`app/(tabs)/_layout.android.tsx`,
-  `features/adjustments/components/native.android.tsx`), the Material palette
-  (`MD_DARK` / `MD_LIGHT` in `trio/colors.ts`), an SF Symbol to Material Symbol table
-  (`trio/symbol-map.ts`, covered by `trio/__tests__/symbol.test.ts`) and Material dialogs
-  (`trio/choice-dialog.tsx`).
+- **Android** uses the same Trio look. Where iOS uses a native-only control (action sheet,
+  alert, wheel, switch, slider, page sheet), Android draws a JS twin of the iOS control
+  (`trio/choice-dialog.tsx`, `trio/switch.tsx`, `trio/slider.tsx`, `trio/sheet-modal.tsx`).
+  SF Symbols map to Material Symbols (`trio/symbol-map.ts`, covered by
+  `trio/__tests__/symbol.test.ts`).
 - The Lab (algorithm benchmark on virtual patients) is CLI only: `pnpm sim`.
 
 See [docs/UI-PORTING.md](docs/UI-PORTING.md).
@@ -57,12 +56,11 @@ See [docs/UI-PORTING.md](docs/UI-PORTING.md).
 
 Closed loop only runs when `closedLoopBlockReason()`
 (`apps/mobile/src/runtime/closed-loop-gate.ts`) returns `null`; otherwise Buddy stays in open
-loop. It blocks when:
+loop. As in Trio, any pump and CGM may loop. It blocks only when:
 
 1. pump or CGM is missing;
 2. the pump is read-only (shadow mode, "Follow Trio");
-3. a simulated (demo) pump is paired with a real CGM, or a real pump with a simulated CGM;
-4. the pump driver `requiresHardwareCheck` and the in-app hardware check has not been completed.
+3. a real pump is paired with the simulated CGM.
 
 ## Quick start
 

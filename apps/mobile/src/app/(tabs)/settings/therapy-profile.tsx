@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from '@/trio/symbol';
-import { ActionSheetIOS, Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
+import { choose } from '@/trio/choice-dialog';
 import { LinkButton, NavRow, Row, Section, T, ValueRow, useTrioColors } from '@/trio';
 import { useSettings } from '@/runtime/settings-store';
 import { SettingsScreen, go } from '@/features/settings/components/settings-screen';
@@ -20,16 +21,9 @@ export default function TherapyProfileDetail() {
 }
 
 function confirm(title: string, message: string, action: string, destructive: boolean, onConfirm: () => void) {
-  if (Platform.OS === 'ios') {
-    ActionSheetIOS.showActionSheetWithOptions({ title, message, options: [action, 'Cancel'], cancelButtonIndex: 1, destructiveButtonIndex: destructive ? 0 : undefined }, (i) => {
-      if (i === 0) onConfirm();
-    });
-  } else {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: action, style: destructive ? 'destructive' : 'default', onPress: onConfirm },
-    ]);
-  }
+  void choose({ title, message, items: [{ label: action, destructive }] }).then((i) => {
+    if (i === 0) onConfirm();
+  });
 }
 
 function Detail({ name }: { name: string }) {

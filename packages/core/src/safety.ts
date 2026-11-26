@@ -1,4 +1,5 @@
 import type { AlgorithmDecision, AlgorithmInput } from './algorithm';
+import type { Millis } from './types';
 import { scheduleValueAt } from './schedule';
 import { MINUTE } from './units';
 
@@ -155,4 +156,117 @@ export function guardManualBolus(units: number, maxBolus: number, increment: num
     u = maxBolus;
   }
   return { units: round3(floorTo(u, increment)), warnings };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Bolus safety validator (port of Trio's BolusSafetyValidator / BolusSafetyEvaluator)
+// ---------------------------------------------------------------------------------------------
+
+/** Trio `BolusSafetyEvaluator.recentBolusThreshold`: recent insulin >= 20% of the request blocks it. */
+export const RECENT_BOLUS_THRESHOLD = 0.2;
+/** Trio `BolusSafetyEvaluator.recentBolusWindowMinutes`. */
+export const RECENT_BOLUS_WINDOW_MINUTES = 6;
+/** Buddy addition: an IOB value older than this is treated as unavailable (only when its age is supplied). */
+export const DEFAULT_MAX_IOB_AGE_MINUTES = 30;
+/** Absorbs binary float noise where Trio compares exact Decimals (e.g. 0.3 * 0.2). */
+const EPS = 1e-9;
+
+export type BolusSafetyRejection =
+  | { readonly reason: 'exceedsMaxBolus'; readonly maxBolus: number }
+  | { readonly reason: 'iobUnavailable' }
+  | { readonly reason: 'exceedsMaxIOB'; readonly currentIOB: number; readonly maxIOB: number }
+  | { readonly reason: 'recentBolusWithinWindow'; readonly totalRecent: number };
+
+export type BolusSafetyResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly rejection: BolusSafetyRejection; readonly message: string };
+
+/** A bolus (manual, SMB or external) already in history. */
+export interface RecentBolus {
+  readonly date: Millis;
+  readonly units: number;
+}
+
+export interface BolusSafetyInput {
+  /** Requested bolus, U. */
+  readonly units: number;
+  /** Pump setting max bolus, U. */
+  readonly maxBolus: number;
+  /** Preference max IOB, U. */
+  readonly maxIOB: number;
+  /** Current IOB, U; null/undefined = not available. */
+  readonly currentIOB: number | null | undefined;
+  /** When `currentIOB` was computed. If given, an older value than `maxIobAgeMinutes` counts as unavailable. */
+  readonly iobDate?: Millis;
+  readonly maxIobAgeMinutes?: number;
+  /** Bolus history; only entries newer than the lookback start are summed (Trio sums every bolus event, SMBs and external included). */
+  readonly recentBoluses: readonly RecentBolus[];
+  /**
+   * Start of the recent-bolus window. Defaults to `now - 6 min`. For commands issued earlier
+   * (remote command timestamp) pass that time so any bolus since the command was sent counts.
+   */
+  readonly lookbackStart?: Millis;
+  readonly now: Millis;
+  /** Wording: 'app' = bolus screen / Shortcuts (default), 'remote' = remote command responses. */
+  readonly source?: 'app' | 'remote';
+}
+
+const fmt = (n: number): string => String(Math.round(n * 1000) / 1000);
+
+/** User-facing text for a rejection; wording follows Trio's Shortcuts ('app') and remote-command ('remote') messages. */
+export function describeBolusRejection(rejection: BolusSafetyRejection, requestedUnits: number, source: 'app' | 'remote' = 'app'): string {
+  if (source === 'remote') {
+    switch (rejection.reason) {
+      case 'exceedsMaxBolus':
+        return `Command rejected: bolus amount (${fmt(requestedUnits)} units) exceeds the maximum allowed (${fmt(rejection.maxBolus)} units).`;
+      case 'iobUnavailable':
+        return 'Command rejected: current IOB is not available.';
+      case 'exceedsMaxIOB':
+        return `Command rejected: bolus amount (${fmt(requestedUnits)} units) would exceed max IOB (${fmt(rejection.maxIOB)} units). Current IOB: ${fmt(rejection.currentIOB)} units.`;
+      case 'recentBolusWithinWindow':
+        return 'Command rejected: boluses totaling more than 20% of the requested amount have been delivered since the command was sent.';
+    }
+  }
+  switch (rejection.reason) {
+    case 'exceedsMaxBolus':
+      return `The bolus cannot be larger than the pump setting max bolus (${fmt(rejection.maxBolus)}).`;
+    case 'iobUnavailable':
+      return 'Bolus blocked: current IOB is not available.';
+    case 'exceedsMaxIOB':
+      return `Bolus blocked: a ${fmt(requestedUnits)} U bolus would exceed max IOB (${fmt(rejection.maxIOB)} U). Current IOB: ${fmt(rejection.currentIOB)} U.`;
+    case 'recentBolusWithinWindow':
+      return `Bolus blocked: a significant bolus was delivered within the last ${RECENT_BOLUS_WINDOW_MINUTES} minutes.`;
+  }
+}
+
+/** Sum of bolus units newer than `since` (Trio `fetchTotalRecentBolusAmount`: `timestamp > since`, no upper bound). */
+export const totalRecentBolus = (boluses: readonly RecentBolus[], since: Millis): number =>
+  boluses.reduce((sum, b) => (b.date > since && Number.isFinite(b.units) ? sum + b.units : sum), 0);
+
+/**
+ * Trio's check order: max bolus, IOB availability, max IOB, recent boluses. The first failing
+ * rule wins. Non-finite or negative requests are rejected as exceeding the max bolus (fail
+ * closed). A zero request falls through to the recent-bolus rule exactly like Trio (0 >= 0).
+ */
+export function validateBolusSafety(input: BolusSafetyInput): BolusSafetyResult {
+  const { units, maxBolus, maxIOB, now } = input;
+  const reject = (rejection: BolusSafetyRejection): BolusSafetyResult => ({
+    ok: false,
+    rejection,
+    message: describeBolusRejection(rejection, units, input.source),
+  });
+
+  if (!isFiniteNumber(units) || units < 0) return reject({ reason: 'exceedsMaxBolus', maxBolus });
+  if (units > maxBolus + EPS) return reject({ reason: 'exceedsMaxBolus', maxBolus });
+
+  const maxAge = (input.maxIobAgeMinutes ?? DEFAULT_MAX_IOB_AGE_MINUTES) * MINUTE;
+  const stale = input.iobDate !== undefined && now - input.iobDate > maxAge;
+  const iob = input.currentIOB;
+  if (!isFiniteNumber(iob) || stale) return reject({ reason: 'iobUnavailable' });
+  if (iob + units > maxIOB + EPS) return reject({ reason: 'exceedsMaxIOB', currentIOB: iob, maxIOB });
+
+  const since = input.lookbackStart ?? now - RECENT_BOLUS_WINDOW_MINUTES * MINUTE;
+  const recent = totalRecentBolus(input.recentBoluses, since);
+  if (recent + EPS >= units * RECENT_BOLUS_THRESHOLD) return reject({ reason: 'recentBolusWithinWindow', totalRecent: recent });
+  return { ok: true };
 }

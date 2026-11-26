@@ -1,4 +1,4 @@
-import { Platform, useColorScheme } from 'react-native';
+import { useColorScheme } from 'react-native';
 import { useSettings } from '@/runtime/settings-store';
 
 /**
@@ -16,7 +16,7 @@ export interface TrioColors {
   readonly tabBar: string;
   /** Color.accentColor / systemBlue — primary buttons */
   readonly accent: string;
-  /** Text and icons drawn on `accent` (filled buttons, FAB). */
+  /** Text and icons drawn on `accent` (filled buttons). */
   readonly onAccent: string;
   readonly insulin: string;
   readonly basal: string;
@@ -100,52 +100,10 @@ export const TRIO_LIGHT: TrioColors = {
   purple: '#AF52DE',
 };
 
-/*
- * Android: Material 3 colour roles from the seed #7D8CF2 (Trio's tab tint, tonal-spot scheme).
- * Surfaces, text and accents follow Material; the data colours (glucose, insulin, carbs, loop
- * state) keep Trio's values so the chart reads the same on both platforms.
- */
-export const MD_DARK: TrioColors = {
-  ...TRIO_DARK,
-  bgTop: '#121318',
-  bgBottom: '#121318',
-  chart: '#1F1F25',
-  tabBar: '#BAC3FF',
-  accent: '#BAC3FF',
-  onAccent: '#212C61',
-  primary: '#E4E1E9',
-  secondary: '#C6C5D0',
-  tertiary: '#90909A',
-  separator: '#46464F',
-  fill: '#34343A',
-  glassStroke: '#46464F',
-  red: '#FFB4AB',
-};
-
-export const MD_LIGHT: TrioColors = {
-  ...TRIO_LIGHT,
-  bgTop: '#FBF8FF',
-  bgBottom: '#FBF8FF',
-  chart: '#EFEDF4',
-  tabBar: '#4F5B92',
-  accent: '#4F5B92',
-  onAccent: '#FFFFFF',
-  primary: '#1B1B21',
-  secondary: '#46464F',
-  tertiary: '#767680',
-  separator: '#C6C5D0',
-  fill: '#E4E1E9',
-  glassStroke: '#C6C5D0',
-  red: '#BA1A1A',
-};
-
-const ANDROID = Platform.OS === 'android';
-
 export function useTrioColors(): TrioColors {
   const system = useColorScheme();
   const pref = useSettings((s) => s.appearance);
   const mode = pref === 'system' ? system : pref;
-  if (ANDROID) return mode === 'light' ? MD_LIGHT : MD_DARK;
   return mode === 'light' ? TRIO_LIGHT : TRIO_DARK;
 }
 
@@ -156,21 +114,12 @@ export function trioGlucoseColor(c: TrioColors, mgdl: number, low = 70, high = 1
   return c.loopGreen;
 }
 
-/** Fill of a disabled filled button. iOS keeps Trio's grays; Material uses the surface-variant fill. */
+/** Fill of a disabled filled button (Trio's system grays). */
 export function disabledFill(c: TrioColors): string {
-  return ANDROID ? c.fill : c.dark ? '#3A3A3C' : '#D1D1D6';
+  return c.dark ? '#3A3A3C' : '#D1D1D6';
 }
 
-/**
- * Text/icon colour on a filled button of `bg`. iOS is always white (Trio); Material picks the
- * accent's `onAccent` or black/white by luminance so light tonal fills (dark theme) stay readable.
- */
-export function onFill(c: TrioColors, bg: string): string {
-  if (!ANDROID) return '#FFFFFF';
-  if (bg === c.accent) return c.onAccent;
-  const m = /^#([0-9a-f]{6})$/i.exec(bg);
-  if (!m) return '#FFFFFF';
-  const n = parseInt(m[1], 16);
-  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-  return lum > 0.6 ? '#1B1B21' : '#FFFFFF';
+/** Text/icon colour on a filled button: always white, as in Trio. */
+export function onFill(_c: TrioColors, _bg: string): string {
+  return '#FFFFFF';
 }

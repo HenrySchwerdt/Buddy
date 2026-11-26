@@ -22,13 +22,22 @@ import {
 } from '@buddy/core';
 import { createAlgorithmRegistry } from '@buddy/algorithms';
 import { createCgmRegistry, createPumpRegistry, demoHub, installAppIdentities, Libre3PairingError, pairLibre3Sensor, pairSensor, parseNightscoutProfile } from '@buddy/devices';
+import { startNativeServices } from './background'; // native-services
+import type { SensorSession } from '@buddy/nightscout';
 import { loadSecrets } from './secrets';
 import { processAlerts, uploadToNightscout } from './services';
 import { bleTransport } from './transports/ble';
 import { nfcTransport } from './transports/nfc';
 import { keychainSecretStore } from './transports/secret-store';
+import { xdripBridge } from './transports/xdrip'; // xdrip-cgm: native bridge, consumed by the xdrip CGM plugin
 import { useSettings } from './settings-store';
 import { closedLoopBlockReason as gateClosedLoop } from './closed-loop-gate';
+import { checkBolusSafety } from './bolus-safety';
+import { archiveKey, chunkSignature, dayOf, KEEP_HISTORY_MS, mergeHistory, planArchive, recentPart, type DayChunk } from './history-archive';
+import { createBolusGate, recordDeliveredBolus, withBolusProgress } from './bolus-tracking';
+import { useBolusTracker } from '../features/home/bolus-progress';
+import { runPostLoopServices, startServices } from './start-services';
+import type { ServiceHost } from './service-host';
 import { useTreatmentSettings } from '../features/treatment/settings-store';
 
 /**
@@ -45,7 +54,6 @@ const DATA_KEY = 'buddy.data.v1';
 const LOOP_INTERVAL = 5 * MINUTE;
 const REAL_POLL_MS = 30_000;
 const PERSIST_DEBOUNCE_MS = 5_000;
-const KEEP_HISTORY = 26 * HOUR;
 
 export interface RuntimeStatus {
   readonly ready: boolean;
@@ -107,7 +115,7 @@ async function buildDevices() {
   const cgmPlugin = s.cgmId ? cgms.get(s.cgmId) : undefined;
   const demo = pumpPlugin?.meta.maturity === 'simulator' || cgmPlugin?.meta.maturity === 'simulator';
   clock = demo ? demoHub.clock : systemClock;
-  const ctx = { clock, log, fetch: globalThis.fetch.bind(globalThis), ble: bleTransport, nfc: nfcTransport, secrets: keychainSecretStore };
+  const ctx = { clock, log, fetch: globalThis.fetch.bind(globalThis), ble: bleTransport, nfc: nfcTransport, secrets: keychainSecretStore, xdrip: xdripBridge }; // xdrip: extra ctx key read by the xdrip CGM plugin
   const settingsFor = async (p: NonNullable<typeof pumpPlugin> | NonNullable<typeof cgmPlugin>) => ({
     ...normalizeSettings(p.settings, p.defaultSettings, s.deviceSettings[p.meta.id]),
     ...(await loadSecrets(p.meta.id, p.settings)),
@@ -167,6 +175,14 @@ export async function runLoop(): Promise<LoopRun | null> {
   }
 }
 
+const serviceHost: ServiceHost = {
+  store,
+  now: () => clock.now(),
+  isDemo: () => useRuntime.getState().demo,
+  runLoop: () => runLoop(),
+  remoteProfile: async () => (await import('./remote-control/wiring')).remoteProfileFields(),
+};
+
 async function afterLoop(pumpState: PumpState | null) {
   const snap = store.snapshot();
   const now = clock.now();
@@ -175,15 +191,28 @@ async function afterLoop(pumpState: PumpState | null) {
   await processAlerts(now, { glucose: snap.glucose.slice(-48), lastRun, lastOk, pump: pumpState }).catch((e) => log.warn(`Alerts failed: ${String(e)}`));
   if (useRuntime.getState().demo) return;
   const s = useSettings.getState();
+  void runPostLoopServices(serviceHost, pumpState?.bolusIncrement);
+  // The store keeps months of history; uploads only look at the recent part (older data went up long ago).
+  const recent = recentPart(snap, now);
   await uploadToNightscout(() => clock.now(), {
-    glucose: snap.glucose,
-    doses: snap.doses,
-    carbs: snap.carbs,
-    loopRuns: snap.loopRuns,
+    glucose: recent.glucose,
+    doses: recent.doses,
+    carbs: recent.carbs,
+    loopRuns: recent.loopRuns,
     pump: pumpState,
     tempTargets: s.tempTarget ? [s.tempTarget] : [],
     overrides: s.override ? [s.override] : [],
+    sensors: sensorSessions(),
   }).catch((e) => log.warn(`Nightscout upload failed: ${String(e)}`));
+}
+
+/**
+ * CGM sensor session starts for Nightscout. A CGM driver that knows its session start implements the optional
+ * `sensorSession()` method; drivers without it simply upload no sensor notes.
+ */
+function sensorSessions(): SensorSession[] {
+  const session = (cgm as { sensorSession?: () => SensorSession | null } | null)?.sensorSession?.();
+  return session ? [session] : [];
 }
 
 function lastRunDate(): number {
@@ -210,21 +239,40 @@ function startScheduler(demo: boolean) {
   }
 }
 
+/** Day chunks of the long history already stored, by UTC day (signature of what was written). */
+let storedDays = new Map<number, string>();
+let archiveTimer: ReturnType<typeof setTimeout> | null = null;
+const ARCHIVE_DEBOUNCE_MS = 60_000;
+
+/** Writes the days of the long history that changed since the last write; removes days that emptied or aged out. */
+async function writeArchive(): Promise<void> {
+  const snap = store.snapshot();
+  const plan = planArchive(snap, clock.now(), storedDays);
+  try {
+    for (const [day, chunk] of plan.write) await Storage.setItem(archiveKey(day), JSON.stringify(chunk));
+    for (const day of plan.remove) await Storage.removeItem(archiveKey(day));
+    storedDays = new Map(plan.signatures);
+  } catch (e) {
+    log.warn(`Could not store history: ${String(e)}`);
+  }
+}
+
 function schedulePersist(demo: boolean) {
   unsubscribePersist?.();
   unsubscribePersist = store.subscribe((snap) => {
     if (demo) return;
     if (persistTimer) clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
-      const cutoff = clock.now() - KEEP_HISTORY;
-      const pruned: DataSnapshot = {
-        glucose: snap.glucose.filter((g) => g.date >= cutoff),
-        doses: snap.doses.filter((d) => d.date >= cutoff),
-        carbs: snap.carbs.filter((c) => c.date >= cutoff),
-        loopRuns: snap.loopRuns.filter((r) => r.date >= cutoff).slice(-100),
-      };
-      void Storage.setItem(DATA_KEY, JSON.stringify(pruned));
+      void Storage.setItem(DATA_KEY, JSON.stringify(recentPart(snap, clock.now())));
+      // Only walk the long history when something is older than the window.
+      const cutoff = clock.now() - KEEP_HISTORY_MS;
+      if (snap.glucose[0] && snap.glucose[0].date < cutoff) store.prune(cutoff);
     }, PERSIST_DEBOUNCE_MS);
+    if (archiveTimer) return; // already due; the write sees the newest state
+    archiveTimer = setTimeout(() => {
+      archiveTimer = null;
+      void writeArchive();
+    }, ARCHIVE_DEBOUNCE_MS);
   });
 }
 
@@ -235,7 +283,19 @@ async function restoreData(demo: boolean) {
   }
   try {
     const raw = await Storage.getItem(DATA_KEY);
-    if (raw) store.replace(migrateSnapshot(JSON.parse(raw) as DataSnapshot));
+    const recent = raw ? migrateSnapshot(JSON.parse(raw) as DataSnapshot) : EMPTY_SNAPSHOT;
+    // Long history: one value per UTC day, oldest first.
+    const now = clock.now();
+    const chunks: DayChunk[] = [];
+    storedDays = new Map();
+    for (let day = dayOf(now - KEEP_HISTORY_MS); day <= dayOf(now); day++) {
+      const text = await Storage.getItem(archiveKey(day));
+      if (!text) continue;
+      const chunk = JSON.parse(text) as DayChunk;
+      chunks.push(chunk);
+      storedDays.set(day, chunkSignature(chunk));
+    }
+    store.replace(migrateSnapshot(mergeHistory(recent, chunks)));
   } catch (e) {
     log.warn(`Could not restore data: ${String(e)}`);
   }
@@ -248,6 +308,7 @@ export function restartRuntime(): Promise<void> {
   starting = (async () => {
     stopScheduler?.();
     useRuntime.setState({ ready: false });
+    startServices(serviceHost);
     try {
       demoHub.reset();
       const demo = await buildDevices();
@@ -259,6 +320,8 @@ export function restartRuntime(): Promise<void> {
       schedulePersist(demo);
       useRuntime.setState({ ready: true, demo, deviceError: null, closedLoopBlocked: closedLoopBlockReason(), now: clock.now(), pump: pump ? await pump.status().catch(() => null) : null });
       startScheduler(demo);
+      // native-services: Live Activity, Android foreground service, App Intents state, background task
+      startNativeServices({ real: !demo && Boolean(pump || cgm), demo, store, now: () => clock.now() });
       await runLoop();
     } catch (e) {
       useRuntime.setState({ ready: true, deviceError: e instanceof Error ? e.message : String(e) });
@@ -280,15 +343,27 @@ export async function logCarbs(grams: number, absorptionHours = 3, note?: string
   if (useRuntime.getState().demo) demoHub.eat(grams);
 }
 
-export async function deliverBolus(units: number): Promise<number> {
+const bolusGate = createBolusGate();
+
+export function deliverBolus(units: number): Promise<number> {
+  return bolusGate(() => deliverBolusNow(units));
+}
+
+async function deliverBolusNow(units: number): Promise<number> {
   if (!pump) throw new Error('No pump connected');
   const s = useSettings.getState();
   const status = await pump.status();
+  // Trio BolusSafetyValidator: max bolus, IOB availability, max IOB and recent boluses (manual path only).
+  const snap = store.snapshot();
+  const safety = checkBolusSafety({ units, limits: s.limits, profile: s.profile, doses: snap.doses, now: clock.now() });
+  if (!safety.ok) throw new Error(safety.message);
   const { units: allowed } = guardManualBolus(units, s.limits.maxBolus, status.bolusIncrement);
   if (allowed <= 0) throw new Error('Bolus amount too small');
-  const r = await pump.bolus(allowed, { automatic: false });
+  const p = pump;
+  const startedAt = clock.now();
+  const r = await withBolusProgress(useBolusTracker.getState(), p, allowed, () => clock.now(), () => p.bolus(allowed, { automatic: false }));
   if (!r.ok) throw new Error(r.error);
-  store.addDoses(await pump.history(clock.now() - HOUR));
+  await recordDeliveredBolus(store, p, allowed, startedAt, () => clock.now(), newId('bolus'));
   return allowed;
 }
 
@@ -303,6 +378,11 @@ export async function setPumpSuspended(suspended: boolean): Promise<void> {
 /** Re-evaluates closed-loop eligibility after settings changes. */
 export function currentPump(): PumpDriver | null {
   return pump;
+}
+
+/** The running CGM source (for sensor info), or null. */
+export function currentCgm(): CgmSource | null {
+  return cgm;
 }
 
 export function refreshEligibility() {

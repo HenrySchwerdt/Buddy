@@ -27,6 +27,7 @@ export type TreatmentEventType =
   | 'Carb Correction'
   | 'Temporary Target'
   | 'Exercise'
+  | 'Sensor Start'
   | 'Note';
 
 /** `api/v1/treatments.json` */
@@ -96,11 +97,11 @@ export interface NightscoutDeviceStatus {
   readonly pump?: {
     readonly clock: string;
     readonly reservoir?: number;
-    readonly battery?: { readonly percent: number };
+    readonly battery?: { readonly percent: number; readonly voltage?: number; readonly string: 'normal' | 'low' };
     readonly status: { readonly status: 'normal' | 'suspended' | 'bolusing'; readonly bolusing: boolean; readonly suspended: boolean; readonly timestamp: string };
     readonly bolusIncrement: number;
   };
-  readonly uploader?: { readonly battery: number; readonly isCharging?: boolean };
+  readonly uploader?: { readonly battery: number; readonly batteryVoltage?: number; readonly isCharging?: boolean };
 }
 
 /** Phone/uploader details for devicestatus (not part of Buddy's loop data). */
@@ -110,4 +111,60 @@ export interface DeviceStatusOptions {
   /** Phone battery in percent. */
   readonly uploaderBattery?: number;
   readonly isCharging?: boolean;
+  /** Phone battery voltage (Trio's `Uploader.batteryVoltage`; iOS has none, so usually omitted). */
+  readonly uploaderBatteryVoltage?: number;
+  /** Pump battery voltage when the driver reports one (Trio `Battery.voltage`). */
+  readonly pumpBatteryVoltage?: number;
+}
+
+/** `api/v1/profile.json` time/value row (Trio `NightscoutTimevalue`). */
+export interface NightscoutTimevalue {
+  /** `HH:mm` */
+  readonly time: string;
+  readonly value: number;
+  readonly timeAsSeconds: number;
+}
+
+/** One named profile of a profile store (Trio `ScheduledNightscoutProfile`). */
+export interface NightscoutScheduledProfile {
+  /** Duration of insulin action, hours. */
+  readonly dia: number;
+  readonly carbs_hr: number;
+  readonly delay: number;
+  /** IANA timezone id */
+  readonly timezone: string;
+  readonly target_low: readonly NightscoutTimevalue[];
+  readonly target_high: readonly NightscoutTimevalue[];
+  readonly sens: readonly NightscoutTimevalue[];
+  readonly basal: readonly NightscoutTimevalue[];
+  readonly carbratio: readonly NightscoutTimevalue[];
+  readonly units: 'mg/dl' | 'mmol';
+}
+
+/** Override preset advertised to followers (Trio `NightscoutPresetOverride`). */
+export interface NightscoutPresetOverride {
+  readonly name: string;
+  /** minutes; absent = indefinite */
+  readonly duration?: number;
+  readonly percentage?: number;
+  /** in the profile's units */
+  readonly target?: number;
+}
+
+/** Document POSTed to `api/v1/profile.json` (Trio `NightscoutProfileStore`). */
+export interface NightscoutProfileStore {
+  readonly defaultProfile: string;
+  readonly startDate: string;
+  readonly mills: number;
+  readonly units: 'mg/dl' | 'mmol';
+  readonly enteredBy: string;
+  readonly store: Readonly<Record<string, NightscoutScheduledProfile>>;
+  readonly bundleIdentifier: string;
+  readonly deviceToken: string;
+  readonly isAPNSProduction: boolean;
+  readonly overridePresets?: readonly NightscoutPresetOverride[];
+  readonly teamID: string;
+  readonly expirationDate?: string;
+  /** Remote command types this build accepts; followers hide unsupported actions. */
+  readonly remoteCommands?: readonly string[];
 }

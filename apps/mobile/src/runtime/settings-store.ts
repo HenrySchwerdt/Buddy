@@ -48,6 +48,34 @@ export interface AppSettings {
   readonly nightscoutUpload: boolean;
   /** Upload high-water marks, so restarts do not re-upload. */
   readonly nightscoutState: Readonly<Record<string, number>>;
+  /** Trio `isDownloadEnabled`: fetch carbs and temp targets entered in Nightscout. */
+  readonly nightscoutDownload: boolean;
+  /** Download high-water marks (newest `created_at` per collection). */
+  readonly nightscoutDownloadState: Readonly<Record<string, number>>;
+  /** Upload CGM sensor session starts as `Sensor Start` treatments. */
+  readonly nightscoutUploadSensors: boolean;
+  /** Apple Health (iOS) or Health Connect (Android): write glucose, carbs and insulin. Trio `useAppleHealth`. */
+  readonly useHealth: boolean;
+  /** Trio `useCalendar` and friends: a calendar event with the current glucose after every loop. */
+  readonly useCalendar: boolean;
+  readonly displayCalendarIOBandCOB: boolean;
+  readonly displayCalendarEmojis: boolean;
+  /** Title of the chosen calendar (Trio `CalendarManager.currentCalendarID`); empty = not chosen. */
+  readonly calendarTitle: string;
+  /** Trio `glucoseBadge`: current glucose on the app icon. */
+  readonly glucoseBadge: boolean;
+  /** Trio `isTrioRemoteControlEnabled` (the shared secret lives in the keychain). */
+  readonly remoteControlEnabled: boolean;
+  /** Ids of remote commands already executed, newest last (replay protection beyond the 10 minute window). */
+  readonly remoteCommandIds: readonly string[];
+  /** Upload to Tidepool after every loop; the session lives in the keychain. */
+  readonly tidepoolUpload: boolean;
+  /** Tidepool upload state (account, data set id, high-water marks, last settings key). Not secret. */
+  readonly tidepoolState: Readonly<Record<string, unknown>>;
+  /** OAuth client id registered with Tidepool for Buddy (a public identifier, not a secret). */
+  readonly tidepoolClientId: string;
+  /** Tidepool server: production or the integration environment. */
+  readonly tidepoolEnvironment: 'production' | 'integration';
 }
 
 interface Actions {
@@ -82,6 +110,21 @@ export const DEFAULT_SETTINGS: AppSettings = {
   nightscoutUrl: '',
   nightscoutUpload: false,
   nightscoutState: {},
+  nightscoutDownload: false,
+  nightscoutDownloadState: {},
+  nightscoutUploadSensors: false,
+  useHealth: false,
+  useCalendar: false,
+  displayCalendarIOBandCOB: false,
+  displayCalendarEmojis: false,
+  calendarTitle: '',
+  glucoseBadge: false,
+  remoteControlEnabled: false,
+  remoteCommandIds: [],
+  tidepoolUpload: false,
+  tidepoolState: {},
+  tidepoolClientId: '',
+  tidepoolEnvironment: 'production',
 };
 
 export const useSettings = create<AppSettings & Actions>()(

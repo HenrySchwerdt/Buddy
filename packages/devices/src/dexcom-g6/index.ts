@@ -37,6 +37,9 @@ export interface G6PersistedState {
   readonly transmitterExpiryInDays: number | null;
 }
 
+/** The G6 sensor warms up for two hours. */
+const G6_WARMUP_MS = 2 * 3_600_000;
+
 const EMPTY_STATE: G6PersistedState = { transmitterStartDate: null, sensorStartOffset: null, transmitterExpiryInDays: null };
 export const g6StateKey = (transmitterId: string): string => `${DEXCOM_G6_ID}.state.${transmitterId}`;
 
@@ -158,6 +161,12 @@ export function createDexcomG6Source(settings: DexcomG6Settings, ctx: DeviceCont
     },
     async readings(since) {
       return buffer.since(since);
+    },
+    sensorInfo() {
+      // The sensor session starts `sensorStartOffset` seconds after the transmitter was activated.
+      if (state.transmitterStartDate === null || state.sensorStartOffset === null || state.sensorStartOffset === NO_ACTIVE_SESSION_START_TIME) return null;
+      const startedAt = state.transmitterStartDate + state.sensorStartOffset * 1000;
+      return { startedAt, expiresAt: startedAt + sensorLifeDays() * 24 * 3_600_000, warmupEndsAt: startedAt + G6_WARMUP_MS };
     },
   };
 }

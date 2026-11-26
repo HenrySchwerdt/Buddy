@@ -1,13 +1,13 @@
-import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useTrioColors } from './colors';
+import { SheetModal } from './sheet-modal';
 import { T } from './text';
 
 /*
  * Android stand-ins for the SwiftUI wheel and compact date picker. The iOS screens render the
- * native SwiftUI controls (1:1 with Trio); these keep the same layout and behaviour on Android.
+ * native SwiftUI controls (1:1 with Trio); these draw the same wheels and capsules in JS.
  */
 
 const ROW = 34;
@@ -61,19 +61,19 @@ export function ListWheel<V extends number | string>({ options, value, onChange,
   );
 }
 
-type Dialog = 'date' | 'time' | null;
+type Mode = 'date' | 'time';
 
-/** Date and/or time capsules that open the Material date and time dialogs. */
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const range = (from: number, to: number, label: (n: number) => string = String): ListWheelOption<number>[] => Array.from({ length: to - from + 1 }, (_, i) => ({ value: from + i, label: label(from + i) }));
+const MONTHS = Array.from({ length: 12 }, (_, m) => ({ value: m, label: new Date(2000, m, 1).toLocaleDateString([], { month: 'long' }) }));
+const IS_12H = new Date(2000, 0, 1, 13).toLocaleTimeString([], { hour: 'numeric' }).toLowerCase().includes('pm');
+
+/** Date and/or time capsules (the compact `DatePicker` look) that open a wheel sheet when tapped. */
 export function DateTimeCapsules({ value, min, onChange, date = true, time = true }: { value: number; min?: number; onChange: (t: number) => void; date?: boolean; time?: boolean }) {
   const c = useTrioColors();
-  const [open, setOpen] = useState<Dialog>(null);
+  const [open, setOpen] = useState<Mode | null>(null);
   const current = new Date(value);
-  const close = () => setOpen(null);
-  const pick = (d: Date) => {
-    close();
-    onChange(Math.max(min ?? -Infinity, d.getTime()));
-  };
-  const capsule = (kind: Exclude<Dialog, null>, text: string) => (
+  const capsule = (kind: Mode, text: string) => (
     <Pressable key={kind} onPress={() => setOpen(kind)} accessibilityRole="button" accessibilityLabel={text} style={({ pressed }) => [styles.capsule, { backgroundColor: c.fill, opacity: pressed ? 0.7 : 1 }]}>
       <T>{text}</T>
     </Pressable>
@@ -82,17 +82,70 @@ export function DateTimeCapsules({ value, min, onChange, date = true, time = tru
     <View style={styles.capsules}>
       {date ? capsule('date', current.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })) : null}
       {time ? capsule('time', current.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : null}
-      {open ? (
-        <DateTimePicker
-          value={current}
-          mode={open}
-          minimumDate={open === 'date' && min !== undefined ? new Date(min) : undefined}
-          accentColor={c.tabBar}
-          onValueChange={(_, d) => pick(d)}
-          onDismiss={close}
-        />
-      ) : null}
+      {open ? <WheelSheet mode={open} value={value} min={min} onClosed={() => setOpen(null)} onCommit={(t) => onChange(Math.max(min ?? -Infinity, t))} /> : null}
     </View>
+  );
+}
+
+/** Bottom sheet with date (month, day, year) or time (hour, minute) wheels and a Done button. */
+function WheelSheet({ mode, value, min, onClosed, onCommit }: { mode: Mode; value: number; min?: number; onClosed: () => void; onCommit: (t: number) => void }) {
+  const c = useTrioColors();
+  const [draft, setDraft] = useState(new Date(value));
+  const set = (patch: (d: Date) => void) =>
+    setDraft((d) => {
+      const next = new Date(d);
+      patch(next);
+      return next;
+    });
+  const daysInMonth = new Date(draft.getFullYear(), draft.getMonth() + 1, 0).getDate();
+  const year = draft.getFullYear();
+  const minYear = min !== undefined ? new Date(min).getFullYear() : year - 5;
+  const hour = draft.getHours();
+  return (
+    <SheetModal onClosed={onClosed}>
+      {(dismiss) => (
+        <View style={[styles.sheet, { backgroundColor: c.dark ? '#1C1C1E' : '#F2F2F7' }]}>
+          <View style={styles.sheetBar}>
+            <Pressable onPress={() => dismiss()} accessibilityRole="button" hitSlop={8}>
+              <T color={c.tabBar}>Cancel</T>
+            </Pressable>
+            <Pressable onPress={() => dismiss(() => onCommit(draft.getTime()))} accessibilityRole="button" hitSlop={8}>
+              <T color={c.tabBar} weight="600">
+                Done
+              </T>
+            </Pressable>
+          </View>
+          <View style={styles.wheels}>
+            {mode === 'date' ? (
+              <>
+                <ListWheel label="Month" options={MONTHS} value={draft.getMonth()} onChange={(m) => set((d) => d.setMonth(m, Math.min(d.getDate(), new Date(d.getFullYear(), m + 1, 0).getDate())))} />
+                <ListWheel label="Day" options={range(1, daysInMonth)} value={draft.getDate()} onChange={(v) => set((d) => d.setDate(v))} />
+                <ListWheel label="Year" options={range(minYear, Math.max(minYear, year) + 5)} value={year} onChange={(y) => set((d) => d.setFullYear(y))} />
+              </>
+            ) : IS_12H ? (
+              <>
+                <ListWheel label="Hour" options={range(1, 12)} value={hour % 12 === 0 ? 12 : hour % 12} onChange={(h) => set((d) => d.setHours((h % 12) + (d.getHours() >= 12 ? 12 : 0)))} />
+                <ListWheel label="Minute" options={range(0, 59, pad2)} value={draft.getMinutes()} onChange={(m) => set((d) => d.setMinutes(m))} />
+                <ListWheel
+                  label="AM or PM"
+                  options={[
+                    { value: 0, label: 'AM' },
+                    { value: 1, label: 'PM' },
+                  ]}
+                  value={hour >= 12 ? 1 : 0}
+                  onChange={(p) => set((d) => d.setHours((d.getHours() % 12) + p * 12))}
+                />
+              </>
+            ) : (
+              <>
+                <ListWheel label="Hour" options={range(0, 23, pad2)} value={hour} onChange={(h) => set((d) => d.setHours(h))} />
+                <ListWheel label="Minute" options={range(0, 59, pad2)} value={draft.getMinutes()} onChange={(m) => set((d) => d.setMinutes(m))} />
+              </>
+            )}
+          </View>
+        </View>
+      )}
+    </SheetModal>
   );
 }
 
@@ -100,5 +153,8 @@ const styles = StyleSheet.create({
   row: { height: ROW, alignItems: 'center', justifyContent: 'center' },
   band: { position: 'absolute', left: 8, right: 8, height: ROW, borderRadius: 8 },
   capsules: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  sheet: { borderRadius: 26, paddingBottom: 12, overflow: 'hidden' },
+  sheetBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 },
+  wheels: { flexDirection: 'row', paddingHorizontal: 12 },
   capsule: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
 });

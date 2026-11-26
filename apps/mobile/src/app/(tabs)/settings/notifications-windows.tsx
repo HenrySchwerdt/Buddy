@@ -3,15 +3,16 @@ import { formatMinuteOfDay, TimeOfDayRow } from '@/features/settings-b/time-row'
 import { HintParagraphs, HintSheet, INDIGO, MiniHint, useHint } from '@/features/settings-b/ui';
 import { now } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';
-import { Section, ToggleRow, TrioScreen, useTrioColors } from '@/trio';
+import { Section, TrioScreen, useTrioColors } from '@/trio';
 import { View } from 'react-native';
 
 const DAY_DEFAULT = 6 * 60;
 const NIGHT_DEFAULT = 22 * 60;
 
 /**
- * Trio AlarmWindows.RootView. Buddy maps the windows onto AlertSettings.quietHours:
- * Night = quietHours start ("Night Starts") → end ("Day Starts").
+ * Trio AlarmWindows.RootView. The window boundaries live in AlertSettings.quietHours:
+ * Night = quietHours start ("Night Starts") → end ("Day Starts"). Each glucose alarm picks Day,
+ * Night or Day & Night itself; the alarm sync (features/settings-b/alarm-store) applies them.
  */
 export default function AlarmWindowsScreen() {
   const c = useTrioColors();
@@ -36,10 +37,9 @@ export default function AlarmWindowsScreen() {
           boldFirst
           lines={[
             `Default: Day starts ${day}, Night starts ${night}.`,
-            'These two times define the Day and Night windows. Each alarm’s Active setting picks one — Day & Night, Day only, or Night only — and only fires when that window is current.',
+            'These two times define the Day and Night windows. Each glucose alarm’s Active setting picks one — Day & Night, Day only, or Night only — and only fires when that window is current.',
             `The Night window runs from 'Night Starts' back around to 'Day Starts' — so by default, Night covers ${night} through ${day} the next morning.`,
-            'These windows are shared between Glucose Alarms and Device Alarms.',
-          ]}
+                      ]}
         />
       ),
     });
@@ -55,10 +55,6 @@ export default function AlarmWindowsScreen() {
             <MiniHint text="Decides when each alarm's Day or Night setting applies." label="Day and Night Window" onHelp={showHelp} />
           </View>
         </View>
-      </Section>
-
-      <Section footer="When on, every alarm except Urgent Low is Day only: it stays silent during the Night window. Urgent Low always fires.">
-        <ToggleRow label="Silence Alarms at Night" value={quiet.enabled} onChange={(v) => setQuiet({ enabled: v })} />
       </Section>
 
       <HintSheet hint={help.hint} onClose={help.close} />

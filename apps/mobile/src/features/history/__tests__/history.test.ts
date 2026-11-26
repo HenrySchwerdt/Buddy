@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { InsulinDose } from '@buddy/core';
-import { mealRows, timeSpan, treatmentRows } from '../rows';
+import { insulinDeleteMessage, mealRows, timeSpan, treatmentRows } from '../rows';
 import { manualGlucoseMgdl, parseGlucoseInput } from '../validation';
 
 const NOW = Date.UTC(2026, 10, 25, 12);
@@ -21,7 +21,7 @@ describe('manual glucose validation', () => {
 });
 
 describe('treatment rows', () => {
-  it('maps doses of the last 24 h, newest first, none deletable (pump-delivered)', () => {
+  it('maps doses of the last 24 h, newest first, only bolus events deletable', () => {
     const doses: InsulinDose[] = [
       { kind: 'bolus', id: 'b', date: NOW - 60 * MIN, units: 1.25 },
       { kind: 'smb', id: 's', date: NOW - 30 * MIN, units: 0.1 },
@@ -33,7 +33,30 @@ describe('treatment rows', () => {
     expect(rows.map((r) => r.id)).toEqual(['t', 's', 'b']);
     expect(rows[0]).toMatchObject({ title: 'Temp Basal', duration: '1h 30m' });
     expect(rows[1]).toMatchObject({ title: 'SMB', type: 'smb' });
-    expect(rows.every((r) => !r.deletable)).toBe(true);
+    expect(rows.map((r) => [r.id, r.deletable])).toEqual([
+      ['t', false],
+      ['s', true],
+      ['b', true],
+    ]);
+  });
+
+  it('marks external insulin deletable and suspends not', () => {
+    const rows = treatmentRows(
+      [
+        { kind: 'bolus', id: 'x', date: NOW - MIN, units: 2, external: true },
+        { kind: 'suspend', id: 'p', date: NOW - 2 * MIN, durationMin: 30 },
+      ],
+      NOW,
+    );
+    expect(rows.find((r) => r.id === 'x')).toMatchObject({ type: 'externalBolus', deletable: true });
+    expect(rows.find((r) => r.id === 'p')?.deletable).toBe(false);
+  });
+
+  it('words the delete confirmation like Trio, with SMB suffix', () => {
+    const [smb] = treatmentRows([{ kind: 'smb', id: 's', date: NOW - MIN, units: 0.1 }], NOW);
+    expect(insulinDeleteMessage(smb!)).toMatch(/, 0\.1 U SMB$/);
+    const [bolus] = treatmentRows([{ kind: 'bolus', id: 'b', date: NOW - MIN, units: 1.25 }], NOW);
+    expect(insulinDeleteMessage(bolus!)).toMatch(/, 1\.25 U$/);
   });
 });
 

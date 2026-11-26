@@ -7,6 +7,7 @@ import { Section, TrioScreen, useTrioColors, ValueRow } from '@/trio';
 export default function NightscoutUploadScreen() {
   const c = useTrioColors();
   const upload = useSettings((s) => s.nightscoutUpload);
+  const uploadSensors = useSettings((s) => s.nightscoutUploadSensors);
   const url = useSettings((s) => s.nightscoutUrl);
   const update = useSettings((s) => s.update);
   const status = useUploadStatus();
@@ -33,7 +34,7 @@ export default function NightscoutUploadScreen() {
                   lines={[
                     'Default: OFF',
                     'The Upload Treatments toggle enables uploading of the following data sets to your connected Nightscout URL:',
-                    '• Glucose\n• Boluses and Temp Basals\n• Carbs\n• Temp Targets\n• Overrides\n• Device Status',
+                    '• Glucose\n• Boluses and Temp Basals\n• Carbs\n• Temp Targets\n• Overrides\n• Device Status (with phone battery)\n• Therapy profile and override presets',
                   ]}
                 />
               ),
@@ -58,10 +59,10 @@ export default function NightscoutUploadScreen() {
       <Section>
         <ToggleWithHint
           label="Upload CGM Sensor States"
-          value={false}
-          disabled
-          onChange={() => {}}
-          miniHint="Enable uploading of sensor errors and other CGM states to Nightscout as notes. Not available yet."
+          value={uploadSensors}
+          disabled={!upload}
+          onChange={(v) => update({ nightscoutUploadSensors: v })}
+          miniHint="Enable uploading of CGM sensor starts to Nightscout as notes."
           onHelp={() =>
             help.show({
               label: 'Upload CGM Sensor States',
@@ -70,8 +71,8 @@ export default function NightscoutUploadScreen() {
                   boldFirst
                   lines={[
                     'Default: OFF',
-                    'When your CGM reports a state where it cannot give a usable reading, such as a sensor error or warmup, the state would be uploaded to Nightscout as a note.',
-                    'Buddy does not support this yet.',
+                    'When your CGM starts a new sensor session, the start is uploaded to Nightscout as a "Sensor Start" note with the transmitter or sensor name.',
+                    'Only CGMs that report their session start support this.',
                   ]}
                 />
               ),

@@ -1,9 +1,9 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { SymbolView } from '@/trio/symbol';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform, View } from 'react-native';
 import { SnoozeAlertsSheet } from '@/features/settings-b/snooze-sheet';
-import { BorderedButton, ButtonCard, UnavailableRow } from '@/features/settings-b/ui';
+import { BorderedButton, ButtonCard } from '@/features/settings-b/ui';
 import { useNotificationsEnabled } from '@/features/settings-b/use-notification-permission';
 import { NavRow, Row, Section, T, TrioScreen, useTrioColors } from '@/trio';
 import { SYSTEM_SETTINGS } from '@/features/platform-copy';
@@ -66,8 +66,8 @@ export default function NotificationsScreen() {
       </Section>
 
       <Section header="Other Notifications">
-        <UnavailableRow label="Live Activity" />
-        <UnavailableRow label="Calendar Events" />
+        <NavRow label={Platform.OS === 'android' ? 'Ongoing Notification' : 'Live Activity'} onPress={() => router.push('/settings/notifications-live-activity' as Href)} />
+        <NavRow label="Calendar Events" onPress={() => router.push('/settings/notifications-calendar' as Href)} />
       </Section>
 
       <SnoozeAlertsSheet visible={showSnooze} onClose={() => setShowSnooze(false)} />

@@ -54,7 +54,7 @@ export default function NightscoutConnectScreen() {
       setMessage(`Error: ${errorMessage(e)}`);
       return;
     }
-    update({ nightscoutUrl: '', nightscoutUpload: false });
+    update({ nightscoutUrl: '', nightscoutUpload: false, nightscoutDownload: false, nightscoutUploadSensors: false, nightscoutState: {}, nightscoutDownloadState: {} });
     setUrl('');
     setToken('');
     setMessage('');

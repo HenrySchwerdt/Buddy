@@ -6,7 +6,7 @@ import { catalogSections, CGM_CATALOG, DEVICE_IMAGE_KEYS, entryForPlugin, isSupp
 
 describe('device catalog', () => {
   test('pump sections follow Trio order with the simulator last', () => {
-    expect(catalogSections(PUMP_CATALOG, true).map((s) => s.manufacturer)).toEqual(['Insulet', 'Medtronic', 'Medtrum', 'SOOIL', 'Simulator']);
+    expect(catalogSections(PUMP_CATALOG, true).map((s) => s.manufacturer)).toEqual(['Insulet', 'Medtronic', 'Medtrum', 'Roche', 'SOOIL', 'Simulator']);
   });
 
   test('CGM sections follow Trio order and hide simulators outside dev builds', () => {
@@ -23,7 +23,7 @@ describe('device catalog', () => {
 
   test('devices without a Buddy driver are listed but not selectable', () => {
     const unsupported = [...PUMP_CATALOG, ...CGM_CATALOG].filter((e) => !isSupported(e)).map((e) => e.name);
-    expect(unsupported).toEqual(['MiniMed', 'Accu-Chek SmartGuide', 'Eversense', 'xDrip4iOS']);
+    expect(unsupported).toEqual(['Accu-Chek SmartGuide', 'Eversense']);
   });
 
   test('Libre 3 / 3+ is selectable and backed by the LibreLinkUp follower', () => {

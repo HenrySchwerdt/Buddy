@@ -1,0 +1,8 @@
+{
+  "name": "buddy-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Expo module: iOS Live Activity (ActivityKit), App Intent state hand-off, Android foreground service + ongoing notification, Android dynamic app shortcuts.",
+  "license": "MIT",
+  "main": "index.ts"
+}

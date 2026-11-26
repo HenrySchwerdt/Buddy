@@ -4,6 +4,8 @@ import { SymbolView } from '@/trio/symbol';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Share, View } from 'react-native';
 import { AVAILABLE_CATEGORIES, buildSettingsExport, EXPORT_CATEGORIES, UNAVAILABLE_CATEGORIES, type ExportCategory } from '@/features/settings-b/export';
+import { useProfiles } from '@/features/settings/profiles';
+import { useMealPresets } from '@/features/treatment/presets-store';
 import { now } from '@/runtime/runtime';
 import { useSettings } from '@/runtime/settings-store';
 import { Row, Section, T, TrioScreen, disabledFill, useTrioColors } from '@/trio';
@@ -28,10 +30,17 @@ export default function ExportSettingsScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setExporting(true);
     try {
-      const json = buildSettingsExport(useSettings.getState(), selected, {
-        appVersion: Constants.expoConfig?.version ?? 'unknown',
-        exportedAt: new Date(now()).toISOString(),
-      });
+      const settings = useSettings.getState();
+      const profiles = useProfiles.getState();
+      const json = buildSettingsExport(
+        settings,
+        selected,
+        {
+          appVersion: Constants.expoConfig?.version ?? 'unknown',
+          exportedAt: new Date(now()).toISOString(),
+        },
+        { mealPresets: useMealPresets.getState().presets, profiles: { activeName: profiles.activeName, stored: profiles.profiles, live: settings.profile } },
+      );
       if (json.length <= 2) throw new Error('Export file is empty (0 bytes)');
       await Share.share({ message: json, title: 'Buddy Settings' });
     } catch (e) {

@@ -36,9 +36,45 @@ above for Trio apply to each of them in the same terms:
 - packages/devices/src/omnipod: OmnipodKit, Copyright (c) 2022 LoopKit Authors
 - packages/devices/src/rileylink, packages/devices/src/omnipod/eros:
   RileyLinkKit, Copyright (c) 2015 Pete Schwamb; OmnipodKit (as above)
+- packages/devices/src/minimed: MinimedKit (migrated in 2023 from ps2/rileylink_ios),
+  Copyright (c) LoopKit Authors; the RileyLink code it derives from is
+  Copyright (c) 2015 Pete Schwamb
 - packages/devices/src/libre3: RoundWhiteDiscKit, Copyright (c) 2026
   RoundWhiteDiscKit contributors; LibreLoop, Copyright (c) 2026 loopkitdev
 - packages/devices/src/syai: SyaiKit, Copyright (c) 2026 Nightscout Foundation
+
+The Tidepool integration in packages/tidepool is a TypeScript port of TidepoolService
+and of TidepoolKit, the library it is built on, as embedded in Trio. Both are
+distributed under the BSD 2-Clause License (not the MIT License above), which
+requires the following notice to accompany the port:
+
+- packages/tidepool: TidepoolService and TidepoolKit, Copyright (c) 2019, Tidepool Project
+
+  BSD 2-Clause License
+
+  Copyright (c) 2019, Tidepool Project
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice, this
+     list of conditions and the following disclaimer.
+
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Device artwork (apps/mobile/src/features/devices/images) is either an original
 drawing made for Buddy (the SVG sources are in images/src/) or copied from the

@@ -82,12 +82,24 @@ function enactedOf(run: LoopRun): NightscoutDetermination | undefined {
   };
 }
 
-function pumpOf(pump: PumpState): NonNullable<NightscoutDeviceStatus['pump']> {
+/** Pump batteries at or below this percent are reported as `low` (Buddy heuristic; Trio forwards the pump's own state). */
+export const LOW_PUMP_BATTERY_PERCENT = 20;
+
+function pumpOf(pump: PumpState, opts: DeviceStatusOptions): NonNullable<NightscoutDeviceStatus['pump']> {
   const status = pump.suspended ? 'suspended' : pump.bolusing ? 'bolusing' : 'normal';
   return {
     clock: isoDate(pump.lastSync),
     ...opt('reservoir', pump.reservoirUnits === null ? undefined : round(pump.reservoirUnits, 2)),
-    ...opt('battery', pump.batteryPercent === null ? undefined : { percent: Math.round(pump.batteryPercent) }),
+    ...opt(
+      'battery',
+      pump.batteryPercent === null
+        ? undefined
+        : {
+            percent: Math.round(pump.batteryPercent),
+            ...opt('voltage', opts.pumpBatteryVoltage),
+            string: pump.batteryPercent <= LOW_PUMP_BATTERY_PERCENT ? ('low' as const) : ('normal' as const),
+          },
+    ),
     status: { status, bolusing: pump.bolusing, suspended: pump.suspended, timestamp: isoDate(pump.lastSync) },
     bolusIncrement: pump.bolusIncrement,
   };
@@ -106,12 +118,16 @@ export function mapLoopRunToDeviceStatus(run: LoopRun, pump: PumpState | null, o
       version: opts.version ?? DEFAULT_VERSION,
       dosingMode: run.mode,
     },
-    ...opt('pump', pump ? pumpOf(pump) : undefined),
+    ...opt('pump', pump ? pumpOf(pump, opts) : undefined),
     ...opt(
       'uploader',
       opts.uploaderBattery === undefined
         ? undefined
-        : { battery: Math.round(opts.uploaderBattery), ...opt('isCharging', opts.isCharging) },
+        : {
+            battery: Math.round(opts.uploaderBattery),
+            ...opt('batteryVoltage', opts.uploaderBatteryVoltage),
+            ...opt('isCharging', opts.isCharging),
+          },
     ),
   };
 }

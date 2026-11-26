@@ -88,6 +88,11 @@ export function createDexcomG7Source(settings: DexcomG7Settings, ctx: DeviceCont
     async readings(since) {
       return buffer.since(since);
     },
+    sensorInfo() {
+      const activatedAt = manager?.state.activatedAt ?? null;
+      if (activatedAt === null) return null;
+      return { startedAt: activatedAt, expiresAt: activatedAt + manager!.lifetimeMs, warmupEndsAt: activatedAt + manager!.warmupDurationMs };
+    },
   };
 }
 

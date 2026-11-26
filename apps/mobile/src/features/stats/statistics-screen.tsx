@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, ScrollView, Share, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSnapshot } from '@/runtime/hooks';
 import { useRuntime } from '@/runtime/runtime';
@@ -11,7 +11,7 @@ import { GlucoseStats, type GlucoseChartType } from './glucose-stats';
 import { INSULIN_CHART_TYPES, InsulinStats, type InsulinChartType } from './insulin-stats';
 import { LOOPING_CHART_TYPES, LoopingStats, type LoopingChartType } from './looping-stats';
 import { MEAL_CHART_TYPES, MealStats, type MealChartType } from './meal-stats';
-import { buildStatsReport } from './report';
+import { ExportPdfSheet } from './export-pdf-sheet';
 import { ChartTypeRow, Hint } from './ui';
 
 type View_ = 'glucose' | 'insulin' | 'looping' | 'meals';
@@ -45,20 +45,14 @@ export function StatisticsScreen() {
 
   const loop = useMemo(() => loopStats(snap.loopRuns, snap.glucose, loopInterval, now), [snap.loopRuns, snap.glucose, loopInterval, now]);
 
-  const share = async () => {
-    try {
-      await Share.share({ title: 'Statistics', message: buildStatsReport(snap, profile, units, now) });
-    } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : String(e));
-    }
-  };
+  const [exporting, setExporting] = useState(false);
 
   return (
     <SheetScreen
       title="Statistics"
       scroll={false}
       leading={<CapsuleButton label="Close" color={c.tabBar} onPress={() => router.back()} />}
-      trailing={<CapsuleButton icon="square.and.arrow.up" onPress={() => void share()} accessibilityLabel="Export statistics" />}>
+      trailing={<CapsuleButton icon="square.and.arrow.up" onPress={() => setExporting(true)} accessibilityLabel="Export PDF" />}>
       <Segmented options={VIEWS} value={view} onChange={setView} />
       <ScrollView style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 16, paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
         {view === 'glucose' ? (
@@ -89,6 +83,7 @@ export function StatisticsScreen() {
         ) : null}
         <View />
       </ScrollView>
+      <ExportPdfSheet visible={exporting} onClose={() => setExporting(false)} snap={snap} profile={profile} units={units} now={now} />
     </SheetScreen>
   );
 }

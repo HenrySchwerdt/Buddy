@@ -54,11 +54,13 @@ describe('createNightscoutUploader', () => {
       pump: PUMP,
       tempTargets: [{ id: 'activity', name: 'Activity', target: 140, durationMin: 60, startedAt: T0 - 20 * MIN }],
       overrides: [{ id: 'exercise', name: 'Exercise', percentage: 50, target: 150, scaleIsf: true, scaleCr: true, disableSmb: true, durationMin: 90, startedAt: T0 - 30 * MIN }],
+      sensors: [{ startedAt: T0 - 40 * MIN, transmitterId: '8GABCD' }],
     });
     expect(res.skipped).toBe(false);
     expect(Object.values(res.collections).every((c) => c.ok && c.uploaded === (c === res.collections.entries ? 2 : 1))).toBe(true);
     expect(f.requests.map((r) => r.path)).toEqual([
       '/api/v1/entries.json',
+      '/api/v1/treatments.json',
       '/api/v1/treatments.json',
       '/api/v1/treatments.json',
       '/api/v1/treatments.json',
@@ -71,6 +73,7 @@ describe('createNightscoutUploader', () => {
       'Carb Correction',
       'Temporary Target',
       'Exercise',
+      'Sensor Start',
       'Buddy',
     ]);
     expect(f.requests.every((r) => r.headers['Content-Type'] === 'application/json')).toBe(true);

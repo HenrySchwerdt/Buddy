@@ -6,7 +6,7 @@
  * - `libre-2-direct`: Libre 2 (EU) sensor over BLE after NFC pairing (`pairSensor`).
  * - `libre-transmitter`: Libre 1 / Libre 2 via a MiaoMiao or Bubble bridge.
  */
-import { defineCgm, hex, fromHex, type CgmSource, type DeviceContext, type DeviceMeta, type GlucoseReading, type SecretStore } from '@buddy/core';
+import { defineCgm, hex, fromHex, type CgmSensorInfo, type CgmSource, type DeviceContext, type DeviceMeta, type GlucoseReading, type SecretStore } from '@buddy/core';
 import { Libre2DirectTransmitter, LIBRE2_NOTIFY, LIBRE2_SERVICE, LIBRE2_WRITE, matchesLibre2Advertisement, nextUnlock, type Libre2Sensor } from './libre2-direct';
 import { LibreErrorDescription, LibreReadingProcessor, type LibreUpdateResult } from './processor';
 import { LibreBleSession, type SessionProtocol } from './session';
@@ -67,10 +67,12 @@ function libre2Protocol(
   secrets: SecretStore,
   buffer: ReadingBuffer,
   processor: LibreReadingProcessor,
-): { protocol: SessionProtocol; loadSensor: () => Promise<Libre2Sensor> } {
+): { protocol: SessionProtocol; loadSensor: () => Promise<Libre2Sensor>; sensorInfo: () => CgmSensorInfo | null } {
   const transmitter = new Libre2DirectTransmitter();
   const calibration = calibrationStore(secrets, LIBRE_SECRET_KEYS.libre2Calibration);
   let sensor: Libre2Sensor | null = null;
+  /** Sensor age (minutes) as of the last packet. */
+  let lastAge: { readonly minutes: number; readonly at: number } | null = null;
   const loadSensor = async (): Promise<Libre2Sensor> => {
     sensor = await loadLibre2Sensor(secrets);
     if (!sensor) throw new Error('No Libre 2 sensor paired. Scan the sensor with NFC first.');
@@ -93,12 +95,18 @@ function libre2Protocol(
       const out = transmitter.onNotify(value, sensor, ctx.clock.now());
       if (out.kind === 'error') ctx.log.warn(`Libre 2: packet rejected (${out.error})`);
       if (out.kind !== 'update' || !sensor) return [];
+      lastAge = { minutes: out.response.age, at: ctx.clock.now() };
       const result = processor.sensorDidUpdate(out.response, hex(sensor.uid), await calibration.get(), await loadCalibrationMapping(secrets));
       report(ctx, buffer, result);
       return [];
     },
   };
-  return { protocol, loadSensor };
+  const sensorInfo = (): CgmSensorInfo | null => {
+    if (!sensor || !lastAge || !(sensor.maxAge > 0)) return null;
+    const startedAt = lastAge.at - lastAge.minutes * 60_000;
+    return { startedAt, expiresAt: startedAt + sensor.maxAge * 60_000, warmupEndsAt: startedAt + 60 * 60_000 };
+  };
+  return { protocol, loadSensor, sensorInfo };
 }
 
 export const libre2DirectCgm = defineCgm<Libre2DirectSettings>({
@@ -110,7 +118,7 @@ export const libre2DirectCgm = defineCgm<Libre2DirectSettings>({
     const secrets = requireCapability(ctx.secrets, 'a secret store (ctx.secrets)', LIBRE2_DIRECT_ID);
     const buffer = new ReadingBuffer();
     const processor = new LibreReadingProcessor({ source: LIBRE2_DIRECT_ID, clock: ctx.clock });
-    const { protocol, loadSensor } = libre2Protocol(ctx, secrets, buffer, processor);
+    const { protocol, loadSensor, sensorInfo } = libre2Protocol(ctx, secrets, buffer, processor);
     const session = new LibreBleSession({
       ble,
       clock: ctx.clock,
@@ -127,6 +135,7 @@ export const libre2DirectCgm = defineCgm<Libre2DirectSettings>({
       },
       stop: () => session.stop(),
       readings: async (since) => buffer.since(since),
+      sensorInfo,
       idle: () => session.idle(),
     };
   },

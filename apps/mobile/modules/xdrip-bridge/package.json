@@ -1,0 +1,8 @@
+{
+  "name": "xdrip-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Expo module: reads xDrip4iOS readings from the shared App Group (iOS) and receives xDrip+ BgEstimate broadcasts (Android).",
+  "license": "MIT",
+  "main": "index.ts"
+}

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Platform, View } from 'react-native';
 import { pairLibreSensor, restartRuntime, useRuntime } from '@/runtime/runtime';
-import { CapsuleButton, PrimaryButton, Row, Section, SheetScreen, T, useTrioColors } from '@/trio';
+import { CapsuleButton, NavRow, PrimaryButton, Row, Section, SheetScreen, T, useTrioColors } from '@/trio';
 import { deleteDevice, deviceErrors, errorText, saveDeviceValues, useActiveDevice, useDeviceValues } from '@/features/devices/device-actions';
 import { PluginForm } from '@/features/devices/plugin-form';
 
@@ -124,6 +124,12 @@ export default function CgmSettings() {
             </T>
             {busy === 'pair' ? <ActivityIndicator /> : null}
           </Row>
+        </Section>
+      ) : null}
+
+      {id === 'libre-2-direct' || id === 'libre-transmitter' ? (
+        <Section>
+          <NavRow label="Calibrations" onPress={() => router.push('/calibrations')} />
         </Section>
       ) : null}
 

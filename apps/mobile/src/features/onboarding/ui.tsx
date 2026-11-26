@@ -2,8 +2,9 @@ import { chooseValue } from '@/trio/choice-dialog';
 import * as Haptics from 'expo-haptics';
 import { SymbolView, type SFSymbol } from '@/trio/symbol';
 import { useState, type PropsWithChildren } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Block, TextBlock } from './texts';
+import { TrioSwitch } from '@/trio';
 import { OB, OT } from './theme';
 import { WheelPicker } from './wheel';
 
@@ -95,7 +96,7 @@ export function ToggleCard({ label, value, onChange, disabled }: { label: string
   return (
     <View style={[styles.card, styles.rowCard, disabled && { opacity: 0.5 }]}>
       <OT style={{ flex: 1 }}>{label}</OT>
-      <Switch value={value} onValueChange={onChange} disabled={disabled} trackColor={{ true: OB.blue }} accessibilityLabel={label} />
+      <TrioSwitch value={value} onValueChange={onChange} disabled={disabled} tint={OB.blue} accessibilityLabel={label} />
     </View>
   );
 }
@@ -111,7 +112,7 @@ export function MenuPickerCard<V extends string | number>({ label, value, option
     <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`${label}, ${current}`} style={({ pressed }) => [styles.card, styles.rowCard, pressed && { opacity: 0.7 }]}>
       <OT style={{ flex: 1 }}>{label}</OT>
       <OT color={OB.blue}>{current}</OT>
-      {Platform.OS === 'android' ? <SymbolView name={{ android: 'arrow_drop_down' }} size={24} tintColor={OB.blue} /> : <SymbolView name="chevron.up.chevron.down" size={13} tintColor={OB.blue} weight="semibold" />}
+      <SymbolView name="chevron.up.chevron.down" size={13} tintColor={OB.blue} weight="semibold" />
     </Pressable>
   );
 }

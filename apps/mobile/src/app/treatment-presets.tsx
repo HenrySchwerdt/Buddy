@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { SymbolView } from '@/trio/symbol';
 import { useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { choose as chooseFromList } from '@/trio/choice-dialog';
 import { CapsuleButton, Row, Section, T, TrioScreen, useTrioColors } from '@/trio';
 import { AddPresetSheet } from '@/features/treatment/add-preset-sheet';
@@ -23,7 +23,7 @@ const fmt = (v: number) => new Intl.NumberFormat(undefined, { maximumFractionDig
 /** Port of Trio's `MealPresetView` ("Meal Presets"). */
 export default function TreatmentPresetsSheet() {
   const c = useTrioColors();
-  const blue = Platform.OS === 'android' ? c.accent : SYSTEM_BLUE;
+  const blue = SYSTEM_BLUE;
   const { presets: stored, add, remove } = useMealPresets();
   const useFPU = useTreatmentSettings((s) => s.useFPUconversion);
   const presets = useMemo(() => sortedPresets(stored), [stored]);
@@ -105,7 +105,7 @@ export default function TreatmentPresetsSheet() {
             ) : null}
             <Pressable onPress={choose} accessibilityRole="button" accessibilityLabel={`Preset, ${selection?.dish ?? 'Saved Food'}`} style={styles.picker}>
               <T color={c.tabBar}>{selection?.dish ?? 'Saved Food'}</T>
-              {Platform.OS === 'android' ? <SymbolView name={{ android: 'arrow_drop_down' }} size={24} tintColor={c.tabBar} /> : <SymbolView name="chevron.up.chevron.down" size={13} tintColor={c.tabBar} weight="semibold" />}
+              <SymbolView name="chevron.up.chevron.down" size={13} tintColor={c.tabBar} weight="semibold" />
             </Pressable>
             {selection ? (
               <Pressable onPress={() => addServing(selection)} accessibilityRole="button" accessibilityLabel="Add one serving" hitSlop={6}>

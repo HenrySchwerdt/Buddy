@@ -97,3 +97,43 @@ export function mapOverrideToTreatment(o: ActiveOverride): NightscoutTreatmentDo
     notes: o.name,
   };
 }
+
+/** A CGM sensor session start, as the CGM driver reports it (Trio `BloodGlucose.sessionStartDate` etc.). */
+export interface SensorSession {
+  /** Session start; becomes the treatment time. */
+  readonly startedAt: Millis;
+  readonly transmitterId?: string;
+  readonly activatedAt?: Millis;
+}
+
+/** Trio drops a session start within a minute of the previous one (GlucoseStorage.storeCGMState). */
+const SENSOR_DEDUPE_MS = 60_000;
+
+/** Swift's `Date.description`: `2026-11-25 12:00:00 +0000`. */
+const swiftDateText = (t: Millis): string => `${new Date(t).toISOString().slice(0, 19).replace('T', ' ')} +0000`;
+
+/** Trio `createCGMStateNotes`: "<transmitter> activated on <date>". */
+export function sensorNotes(s: SensorSession): string {
+  let notes = s.transmitterId ?? '';
+  if (s.activatedAt !== undefined) notes = `${notes} activated on ${swiftDateText(s.activatedAt)}`;
+  return notes;
+}
+
+/** Trio `createCGMStateTreatment`: a `Sensor Start` treatment whose notes identify the transmitter. */
+export function mapSensorStartToTreatment(s: SensorSession): NightscoutTreatmentDoc {
+  return { ...base('Sensor Start', s.startedAt, `sensor-${s.startedAt}`), notes: sensorNotes(s) };
+}
+
+export function mapSensorStartsToTreatments(sessions: readonly SensorSession[]): NightscoutTreatmentDoc[] {
+  const out: NightscoutTreatmentDoc[] = [];
+  let last: Millis | undefined;
+  for (const s of [...sessions].sort((a, b) => a.startedAt - b.startedAt)) {
+    if (last !== undefined && Math.abs(s.startedAt - last) < SENSOR_DEDUPE_MS) continue;
+    last = s.startedAt;
+    out.push(mapSensorStartToTreatment(s));
+  }
+  return out;
+}
+
+/** Trio `uploadNoteTreatment`: a free-text `Note` treatment stamped with the current time. */
+export const mapNoteToTreatment = (note: string, date: Millis): NightscoutTreatmentDoc => ({ ...base('Note', date, `note-${date}`), notes: note });

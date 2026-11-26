@@ -27,6 +27,8 @@ export interface ScrollBarChartProps {
   readonly yLabel?: (v: number) => string;
   readonly onRangeChange?: (range: { start: number; end: number }) => void;
   readonly popover?: (b: Bucket) => ReactNode;
+  /** Called when a bar is held (or released again with null). */
+  readonly onSelect?: (b: Bucket | null) => void;
   readonly accessibilityLabel: string;
 }
 
@@ -57,6 +59,8 @@ export function ScrollBarChart(p: ScrollBarChartProps) {
   const [scrollX, setScrollX] = useState(0);
   const [selected, setSelected] = useState<Bucket | null>(null);
   const scroller = useRef<ScrollViewInstance>(null);
+  const onSelect = p.onSelect;
+  useEffect(() => onSelect?.(selected), [selected, onSelect]);
 
   const plotW = Math.max(1, w - AXIS_W);
   const plotH = height - X_LABEL_H;

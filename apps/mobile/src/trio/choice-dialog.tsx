@@ -1,13 +1,16 @@
-import { ActionSheetIOS, Alert, type AlertButton, type AlertOptions, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { ActionSheetIOS, Alert, type AlertButton, type AlertOptions, type AlertType, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { create } from 'zustand';
-import { useTrioColors } from './colors';
-import { SymbolView } from './symbol';
+import { useTrioColors, type TrioColors } from './colors';
+import { SheetModal } from './sheet-modal';
 import { T } from './text';
 
 /*
- * Option pickers and action lists. iOS keeps the native action sheet (as in Trio). Android shows a
- * Material 3 dialog: `Alert.alert` there renders at most three buttons, which silently cut off
- * longer option lists.
+ * Option pickers, action lists and alerts. iOS keeps the native `UIAlertController` / action sheet
+ * (as in Trio). Android has neither, so it draws the same controls in JS: a bottom action sheet
+ * with a separate Cancel card, and a centred alert with divided buttons. `Alert.alert` is routed
+ * through the JS alert so every confirmation in the app looks the same (and is not limited to the
+ * three buttons Android's own dialog allows).
  */
 
 export interface ChoiceItem {
@@ -19,28 +22,36 @@ interface Request {
   readonly title?: string;
   readonly message?: string;
   readonly items: readonly ChoiceItem[];
-  /** Index of the current value: shown as a radio list when set, as an action list otherwise. */
+  /** Index of the current value; shown in semibold. */
   readonly selected?: number;
   readonly resolve: (index: number | null) => void;
 }
-
-const useChoice = create<{ request: Request | null; alert: AlertRequest | null }>(() => ({ request: null, alert: null }));
 
 interface AlertRequest {
   readonly title: string;
   readonly message?: string;
   readonly buttons: readonly AlertButton[];
   readonly cancelable: boolean;
+  /** Set for `Alert.prompt`: shows a text field and passes its text to the pressed button. */
+  readonly prompt?: { readonly defaultValue: string; readonly secure: boolean };
 }
 
-/*
- * Android: `Alert.alert` draws a legacy (teal, non-Material) dialog. Route it through the Material
- * dialog below so every confirmation in the app matches; iOS keeps the native UIAlertController.
- */
+const useChoice = create<{ request: Request | null; alert: AlertRequest | null }>(() => ({ request: null, alert: null }));
+
 if (Platform.OS === 'android') {
   Alert.alert = (title: string, message?: string, buttons?: AlertButton[], options?: AlertOptions) => {
     const list = buttons && buttons.length > 0 ? buttons : [{ text: 'OK' }];
     useChoice.setState({ alert: { title, message, buttons: list, cancelable: options?.cancelable ?? list.some((b) => b.style === 'cancel') } });
+  };
+  // `Alert.prompt` is iOS-only in React Native; the JS alert gives Android the same text-field alert.
+  Alert.prompt = (title: string, message?: string, callbackOrButtons?: ((text: string) => void) | AlertButton[], type?: AlertType, defaultValue?: string) => {
+    const buttons: AlertButton[] =
+      typeof callbackOrButtons === 'function'
+        ? [{ text: 'Cancel', style: 'cancel' }, { text: 'OK', onPress: (t?: string) => callbackOrButtons(t ?? '') }]
+        : callbackOrButtons && callbackOrButtons.length > 0
+          ? [...callbackOrButtons]
+          : [{ text: 'OK' }];
+    useChoice.setState({ alert: { title, message, buttons, cancelable: buttons.some((b) => b.style === 'cancel'), prompt: { defaultValue: defaultValue ?? '', secure: type === 'secure-text' } } });
   };
 }
 
@@ -68,46 +79,132 @@ export function chooseValue<V>(title: string, options: readonly { value: V; labe
   });
 }
 
-/** Mounted once at the root; renders the Android dialog. */
+/** Mounted once at the root; renders the Android action sheet and alert. */
 export function ChoiceDialogHost() {
   if (Platform.OS === 'ios') return null;
   return (
     <>
-      <ChoiceDialog />
-      <AlertDialog />
+      <ActionSheet />
+      <IosAlert />
     </>
   );
 }
 
-function AlertDialog() {
+/** iOS translucent popover surface. */
+const surface = (c: TrioColors) => (c.dark ? '#2C2C2E' : '#F6F6F8');
+const IOS_BLUE = (c: TrioColors) => (c.dark ? '#0A84FF' : '#007AFF');
+
+function ActionSheet() {
+  const c = useTrioColors();
+  const request = useChoice((s) => s.request);
+  if (!request) return null;
+  const finish = (index: number | null) => request.resolve(index);
+  return (
+    <SheetModal onClosed={() => useChoice.setState({ request: null })}>
+      {(dismiss) => (
+        <View style={{ gap: 8 }}>
+          <View style={[styles.group, { backgroundColor: surface(c) }]}>
+            {request.title || request.message ? (
+              <View style={[styles.header, { borderBottomColor: c.separator }]}>
+                {request.title ? (
+                  <T style_="footnote" secondary align="center" weight="600">
+                    {request.title}
+                  </T>
+                ) : null}
+                {request.message ? (
+                  <T style_="footnote" secondary align="center">
+                    {request.message}
+                  </T>
+                ) : null}
+              </View>
+            ) : null}
+            <ScrollView style={{ maxHeight: 440 }} bounces={false}>
+              {request.items.map((item, i) => (
+                <Pressable
+                  key={`${item.label}${i}`}
+                  accessibilityRole="button"
+                  accessibilityState={request.selected !== undefined ? { selected: i === request.selected } : undefined}
+                  onPress={() => dismiss(() => finish(i))}
+                  style={({ pressed }) => [styles.item, i > 0 && { borderTopColor: c.separator, borderTopWidth: StyleSheet.hairlineWidth }, pressed && { backgroundColor: c.fill }]}>
+                  <T size={20} color={item.destructive ? c.red : IOS_BLUE(c)} weight={i === request.selected ? '600' : '400'} numberOfLines={1}>
+                    {item.label}
+                  </T>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => dismiss(() => finish(null))} style={({ pressed }) => [styles.group, styles.item, { backgroundColor: pressed ? c.fill : surface(c) }]}>
+            <T size={20} weight="600" color={IOS_BLUE(c)}>
+              Cancel
+            </T>
+          </Pressable>
+        </View>
+      )}
+    </SheetModal>
+  );
+}
+
+function IosAlert() {
   const c = useTrioColors();
   const alert = useChoice((s) => s.alert);
+  const [text, setText] = useState('');
+  const [shown, setShown] = useState<AlertRequest | null>(null);
+  if (alert !== shown) {
+    setShown(alert);
+    setText(alert?.prompt?.defaultValue ?? '');
+  }
   if (!alert) return null;
   const close = (button?: AlertButton) => {
     useChoice.setState({ alert: null });
-    button?.onPress?.();
+    button?.onPress?.(alert.prompt ? text : undefined);
   };
   const dismiss = () => {
     if (alert.cancelable) close(alert.buttons.find((b) => b.style === 'cancel'));
   };
+  // UIKit: two buttons sit side by side, three or more stack; the cancel button is semibold.
+  const stacked = alert.buttons.length !== 2;
+  const preferred = alert.buttons.find((b) => b.isPreferred);
   return (
-    <Modal transparent animationType="fade" statusBarTranslucent onRequestClose={dismiss}>
+    <Modal transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={dismiss}>
       <Pressable style={styles.scrim} onPress={dismiss} accessibilityLabel="Dismiss">
-        <Pressable style={[styles.dialog, { backgroundColor: c.dark ? '#29292F' : '#EAE7EF' }]} onPress={() => {}}>
-          <T style={styles.title} accessibilityRole="header">
-            {alert.title}
-          </T>
-          {alert.message ? (
-            <ScrollView style={{ maxHeight: 360 }}>
-              <T style_="subheadline" secondary style={styles.message}>
-                {alert.message}
-              </T>
-            </ScrollView>
-          ) : null}
-          <View style={[styles.actions, { flexWrap: 'wrap' }]}>
+        <Pressable style={[styles.alert, { backgroundColor: surface(c) }]} onPress={() => {}} accessibilityRole="alert">
+          <View style={styles.alertBody}>
+            <T style_="headline" align="center" accessibilityRole="header">
+              {alert.title}
+            </T>
+            {alert.message ? (
+              <ScrollView style={{ maxHeight: 320 }} bounces={false}>
+                <T style_="footnote" align="center" style={{ marginTop: 4 }}>
+                  {alert.message}
+                </T>
+              </ScrollView>
+            ) : null}
+            {alert.prompt ? (
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                autoFocus
+                secureTextEntry={alert.prompt.secure}
+                selectionColor={c.tabBar}
+                accessibilityLabel={alert.title}
+                style={[styles.promptInput, { color: c.primary, backgroundColor: c.dark ? '#1C1C1E' : '#FFFFFF', borderColor: c.separator }]}
+              />
+            ) : null}
+          </View>
+          <View style={{ flexDirection: stacked ? 'column' : 'row' }}>
             {alert.buttons.map((b, i) => (
-              <Pressable key={`${b.text}${i}`} onPress={() => close(b)} android_ripple={{ color: c.fill }} accessibilityRole="button" style={styles.cancel}>
-                <T color={b.style === 'destructive' ? c.red : c.accent} style={{ fontWeight: '500' }}>
+              <Pressable
+                key={`${b.text}${i}`}
+                accessibilityRole="button"
+                onPress={() => close(b)}
+                style={({ pressed }) => [
+                  styles.alertButton,
+                  { borderTopColor: c.separator, borderTopWidth: StyleSheet.hairlineWidth },
+                  !stacked && i > 0 && { borderLeftColor: c.separator, borderLeftWidth: StyleSheet.hairlineWidth },
+                  !stacked && { flex: 1 },
+                  pressed && { backgroundColor: c.fill },
+                ]}>
+                <T size={17} color={b.style === 'destructive' ? c.red : IOS_BLUE(c)} weight={b.style === 'cancel' || b === preferred ? '600' : '400'}>
                   {b.text}
                 </T>
               </Pressable>
@@ -119,56 +216,13 @@ function AlertDialog() {
   );
 }
 
-function ChoiceDialog() {
-  const c = useTrioColors();
-  const request = useChoice((s) => s.request);
-  if (!request) return null;
-  const close = (index: number | null) => {
-    useChoice.setState({ request: null });
-    request.resolve(index);
-  };
-  const radio = request.selected !== undefined;
-  return (
-    <Modal transparent animationType="fade" statusBarTranslucent onRequestClose={() => close(null)}>
-      <Pressable style={styles.scrim} onPress={() => close(null)} accessibilityLabel="Dismiss">
-        <Pressable style={[styles.dialog, { backgroundColor: c.dark ? '#29292F' : '#EAE7EF' }]} onPress={() => {}}>
-          {request.title ? (
-            <T style={styles.title} accessibilityRole="header">
-              {request.title}
-            </T>
-          ) : null}
-          {request.message ? (
-            <T style_="subheadline" secondary style={styles.message}>
-              {request.message}
-            </T>
-          ) : null}
-          <ScrollView style={{ maxHeight: 420 }}>
-            {request.items.map((item, i) => (
-              <Pressable key={item.label} onPress={() => close(i)} android_ripple={{ color: c.fill }} accessibilityRole={radio ? 'radio' : 'button'} accessibilityState={radio ? { checked: i === request.selected } : undefined} style={styles.item}>
-                {radio ? <SymbolView name={{ android: i === request.selected ? 'radio_button_checked' : 'radio_button_unchecked' }} size={24} tintColor={i === request.selected ? c.accent : c.secondary} /> : null}
-                <T color={item.destructive ? c.red : undefined}>{item.label}</T>
-              </Pressable>
-            ))}
-          </ScrollView>
-          <View style={styles.actions}>
-            <Pressable onPress={() => close(null)} android_ripple={{ color: c.fill }} accessibilityRole="button" style={styles.cancel}>
-              <T color={c.accent} style={{ fontWeight: '500' }}>
-                Cancel
-              </T>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  dialog: { width: '100%', maxWidth: 400, borderRadius: 28, paddingTop: 24, paddingBottom: 12 },
-  title: { fontSize: 24, fontWeight: '400', paddingHorizontal: 24, marginBottom: 12 },
-  message: { paddingHorizontal: 24, marginBottom: 12 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 56, paddingHorizontal: 24 },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 12, paddingTop: 8 },
-  cancel: { paddingHorizontal: 12, height: 40, justifyContent: 'center', borderRadius: 20, overflow: 'hidden' },
+  alert: { width: 270, borderRadius: 14, overflow: 'hidden' },
+  alertBody: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16, alignItems: 'center' },
+  promptInput: { alignSelf: 'stretch', marginTop: 12, height: 32, paddingHorizontal: 8, paddingVertical: 0, fontSize: 15, borderRadius: 6, borderWidth: StyleSheet.hairlineWidth },
+  alertButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  group: { borderRadius: 14, overflow: 'hidden' },
+  header: { paddingHorizontal: 16, paddingVertical: 14, gap: 2, borderBottomWidth: StyleSheet.hairlineWidth },
+  item: { minHeight: 57, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
 });

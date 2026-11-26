@@ -9,9 +9,12 @@ const runtime = vi.hoisted(() => ({
   logCarbs: vi.fn(async () => {}),
   runLoop: vi.fn(async () => null),
   now: vi.fn(() => 0),
+  useRuntime: { getState: () => ({ demo: false }) },
   store: { addDoses: vi.fn(), addCarbs: vi.fn(), snapshot: vi.fn(() => ({ glucose: [{ date: 0 }], doses: [], carbs: [], loopRuns: [] })) },
 }));
+const unlock = vi.hoisted(() => ({ requireUnlock: vi.fn(async () => {}) }));
 vi.mock('@/runtime/runtime', () => runtime);
+vi.mock('@/runtime/unlock', () => unlock);
 vi.mock('../use-treatment-model', () => ({ STALE_GLUCOSE_MS: 6 * 60_000 }));
 
 import { invokeTreatments, type TreatmentRequest } from '../submit';
@@ -131,5 +134,22 @@ describe('carb notes', () => {
     expect(main?.note).toBe('Pizza');
     expect(fpu.length).toBeGreaterThan(0);
     expect(fpu.every((e) => e.note === undefined)).toBe(true);
+  });
+});
+
+describe('biometric unlock before a pump bolus', () => {
+  it('asks before the bolus and stops everything when it fails', async () => {
+    unlock.requireUnlock.mockRejectedValueOnce(new Error('Authentication cancelled'));
+    const r = await invokeTreatments(request({ amount: 2, carbs: 20 }));
+    expect(r).toEqual({ ok: false, message: 'Authentication cancelled' });
+    expect(runtime.deliverBolus).not.toHaveBeenCalled();
+    expect(runtime.logCarbs).not.toHaveBeenCalled();
+  });
+
+  it('is not asked for carbs only or for external insulin', async () => {
+    unlock.requireUnlock.mockClear();
+    await invokeTreatments(request({ carbs: 20 }));
+    await invokeTreatments(request({ amount: 1, externalInsulin: true }));
+    expect(unlock.requireUnlock).not.toHaveBeenCalled();
   });
 });

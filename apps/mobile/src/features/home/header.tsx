@@ -4,6 +4,8 @@ import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { TREND_ROTATION, type Trend } from '@buddy/core';
 import { T, useTrioColors } from '@/trio';
+import { SensorLifecycleArc, SensorStatusTag } from './sensor-lifecycle-view';
+import type { SensorLifecycle } from './sensor-lifecycle';
 
 /** PumpView: reservoir capsule + battery, or "Add pump". */
 export function PumpView({ reservoir, battery, onPress, hasPump }: { reservoir: number | null; battery: number | null; onPress: () => void; hasPump: boolean }) {
@@ -41,7 +43,7 @@ export function PumpView({ reservoir, battery, onPress, hasPump }: { reservoir: 
 }
 
 /** CurrentGlucoseView "bobble": disc, angular-gradient ring, trend triangle, value and age. */
-export function GlucoseBobble({ value, color, trend, ago, delta, stale, onPress, empty }: { value: string; color: string; trend: Trend; ago: string; delta: string; stale: boolean; onPress: () => void; empty: boolean }) {
+export function GlucoseBobble({ value, color, trend, ago, delta, stale, onPress, empty, lifecycle }: { value: string; color: string; trend: Trend; ago: string; delta: string; stale: boolean; onPress: () => void; empty: boolean; lifecycle?: SensorLifecycle | null }) {
   const c = useTrioColors();
   const rotation = useRef(new Animated.Value(TREND_ROTATION[trend])).current;
   useEffect(() => {
@@ -61,6 +63,7 @@ export function GlucoseBobble({ value, color, trend, ago, delta, stale, onPress,
   const rotate = rotation.interpolate({ inputRange: [-180, 180], outputRange: ['-180deg', '180deg'] });
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Glucose ${value}, ${ago}, delta ${delta}`} style={{ width: size + 26, height: size + 26, alignItems: 'center', justifyContent: 'center' }}>
+      {lifecycle ? <SensorLifecycleArc lifecycle={lifecycle} /> : null}
       {!stale && trend !== 'unknown' && (
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { transform: [{ rotate }] }]}>
           <View style={[styles.triangle, { top: (size + 26) / 2 - 11 }]} />
@@ -79,7 +82,7 @@ export function GlucoseBobble({ value, color, trend, ago, delta, stale, onPress,
         <Circle cx={size / 2} cy={size / 2} r={size / 2 - 4} fill={c.chart} stroke={stale ? c.loopGray : 'url(#bobble)'} strokeWidth={6} />
       </Svg>
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.center]}>
-        <T rounded weight="700" size={42} color={stale ? c.secondary : color === c.loopGreen ? c.primary : color} style={stale && { textDecorationLine: 'line-through' }}>
+        <T rounded weight="700" size={42} color={stale ? c.secondary : color} style={stale && { textDecorationLine: 'line-through' }}>
           {value}
         </T>
         <View style={{ flexDirection: 'row', gap: 10, marginTop: -2 }}>
@@ -93,6 +96,11 @@ export function GlucoseBobble({ value, color, trend, ago, delta, stale, onPress,
           ) : null}
         </View>
       </View>
+      {lifecycle ? (
+        <View pointerEvents="none" style={styles.lifecycleTag}>
+          <SensorStatusTag text={lifecycle.text} theme={lifecycle.theme} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -138,5 +146,6 @@ const styles = StyleSheet.create({
   reservoir: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 2 },
   battery: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 4 },
   center: { alignItems: 'center', justifyContent: 'center' },
+  lifecycleTag: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
   triangle: { position: 'absolute', right: 0, width: 0, height: 0, borderTopWidth: 11, borderBottomWidth: 11, borderLeftWidth: 16, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#43BBE9' },
 });

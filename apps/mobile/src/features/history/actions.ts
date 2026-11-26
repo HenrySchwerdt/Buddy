@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { CarbEntry, GlucoseReading } from '@buddy/core';
 import { now, store } from '@/runtime/runtime';
+import { deleteRecordEverywhere } from './delete';
 import { MANUAL_SOURCE, glucoseKey, type HistoryMode } from './rows';
 
 export { manualGlucoseMgdl, parseGlucoseInput } from './validation';
@@ -17,12 +18,17 @@ export function addManualGlucose(mgdl: number): void {
 }
 
 /** Removes one glucose reading. */
-export function deleteGlucose(reading: GlucoseReading): void {
-  store.removeGlucose(reading.source, reading.date);
+export function deleteGlucose(reading: GlucoseReading): Promise<void> {
+  return deleteRecordEverywhere('glucose', reading.source, reading.date);
 }
 
-export function deleteCarbs(entry: CarbEntry): void {
-  store.removeCarbs(entry.id);
+export function deleteCarbs(entry: CarbEntry): Promise<void> {
+  return deleteRecordEverywhere('carbs', entry.id, entry.date);
+}
+
+/** Deletes a bolus, SMB or external insulin entry. */
+export function deleteInsulin(id: string, date: number): Promise<void> {
+  return deleteRecordEverywhere('insulin', id, date);
 }
 
 /**

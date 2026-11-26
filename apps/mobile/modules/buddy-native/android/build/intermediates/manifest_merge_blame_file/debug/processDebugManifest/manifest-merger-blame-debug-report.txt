@@ -1,0 +1,51 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="dev.buddy.nativeservices" >
+4
+5    <uses-sdk android:minSdkVersion="26" />
+5-->INJECTED
+5-->INJECTED
+6
+7    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+7-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:2:3-75
+7-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:2:20-72
+8    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+8-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:3:3-92
+8-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:3:20-89
+9    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+9-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:4:3-87
+9-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:4:20-84
+10    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+10-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:5:3-75
+10-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:5:20-72
+11    <uses-permission android:name="android.permission.WAKE_LOCK" />
+11-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:6:3-66
+11-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:6:20-63
+12
+13    <application>
+13-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:8:3-23:17
+14
+15        <!--
+16      Keeps the app process (and with it the JS runtime that runs the loop) alive while a real pump or CGM is
+17      configured. The service extends React Native's HeadlessJsTaskService: its headless task "BuddyForeground"
+18      (registered in src/runtime/background.ts) keeps JS timers running and restarts the runtime after the process
+19      was killed. connectedDevice is used when a Bluetooth permission is granted, specialUse otherwise.
+20        -->
+21        <service
+21-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:15:5-22:15
+22            android:name="dev.buddy.nativeservices.BuddyForegroundService"
+22-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:16:7-69
+23            android:exported="false"
+23-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:17:7-31
+24            android:foregroundServiceType="connectedDevice|specialUse" >
+24-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:18:7-65
+25            <property
+25-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:19:7-21:174
+26                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+26-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:20:9-68
+27                android:value="Automated insulin delivery research app: keeps the loop and CGM/pump connection running and shows glucose, IOB and COB in an ongoing notification." />
+27-->/Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:21:9-171
+28        </service>
+29    </application>
+30
+31</manifest>

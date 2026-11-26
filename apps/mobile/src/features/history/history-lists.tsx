@@ -2,10 +2,10 @@ import { SymbolView } from '@/trio/symbol';
 import { Pressable, View } from 'react-native';
 import { toMmol, type CarbEntry, type GlucoseReading, type GlucoseUnit } from '@buddy/core';
 import { Row, Section, T, useTrioColors } from '@/trio';
-import { deleteCarbs, deleteGlucose } from './actions';
+import { deleteCarbs, deleteGlucose, deleteInsulin } from './actions';
 import type { AdjustmentRun } from './adjustment-log';
 import { Dot, NoData, SwipeRow, confirmDelete } from './list-parts';
-import { MANUAL_SOURCE, TREND_SYMBOL, glucoseKey, timeOfDay, upTo2, type MealRow, type TreatmentRow, type TreatmentType } from './rows';
+import { MANUAL_SOURCE, TREND_SYMBOL, glucoseKey, insulinDeleteMessage, timeOfDay, upTo2, type MealRow, type TreatmentRow, type TreatmentType } from './rows';
 import { TreatmentFilter } from './treatment-filter';
 
 const fmtGlucose = (mgdl: number, units: GlucoseUnit) => (units === 'mg/dL' ? String(Math.round(mgdl)) : new Intl.NumberFormat(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(toMmol(mgdl)));
@@ -30,14 +30,22 @@ export function TreatmentsList({ rows, filter, onFilterChange }: { rows: readonl
         <NoData icon="syringe" />
       ) : (
         visible.map((r) => (
-          <Row key={r.id} accessibilityLabel={`${r.title} ${r.amount ?? ''} ${r.duration ?? ''}, ${timeOfDay(r.date)}`}>
-            <Dot color={dot[r.dot]} />
-            <T>{r.title}</T>
-            {r.amount ? <T secondary>{r.amount}</T> : null}
-            {r.duration ? <T secondary>{r.duration}</T> : null}
-            <View style={{ flex: 1 }} />
-            <Time t={r.date} />
-          </Row>
+          <SwipeRow
+            key={r.id}
+            actions={
+              r.deletable
+                ? [{ label: 'Delete', icon: 'trash.fill', color: c.red, onPress: () => confirmDelete('Delete Insulin?', insulinDeleteMessage(r), () => void deleteInsulin(r.id, r.date)) }]
+                : []
+            }>
+            <Row accessibilityLabel={`${r.title} ${r.amount ?? ''} ${r.duration ?? ''}, ${timeOfDay(r.date)}`}>
+              <Dot color={dot[r.dot]} />
+              <T>{r.title}</T>
+              {r.amount ? <T secondary>{r.amount}</T> : null}
+              {r.duration ? <T secondary>{r.duration}</T> : null}
+              <View style={{ flex: 1 }} />
+              <Time t={r.date} />
+            </Row>
+          </SwipeRow>
         ))
       )}
     </Section>
@@ -68,7 +76,7 @@ export function MealsList({ rows, showFuture, onToggleFuture, onEdit }: { rows: 
                 label: 'Delete',
                 icon: 'trash.fill',
                 color: c.red,
-                onPress: () => confirmDelete('Delete Carbs?', `${timeOfDay(m.date)}, ${upTo2(m.entry.grams)} g`, () => deleteCarbs(m.entry)),
+                onPress: () => confirmDelete('Delete Carbs?', `${timeOfDay(m.date)}, ${upTo2(m.entry.grams)} g`, () => void deleteCarbs(m.entry)),
               },
               { label: 'Edit', icon: 'pencil', color: c.accent, onPress: () => onEdit(m.entry) },
             ]}>
@@ -122,7 +130,7 @@ export function GlucoseList({ rows, units }: { rows: readonly GlucoseReading[]; 
                   label: 'Delete',
                   icon: 'trash.fill',
                   color: c.red,
-                  onPress: () => confirmDelete('Delete Glucose?', `${timeOfDay(g.date)}, ${value} ${units}`, () => deleteGlucose(g)),
+                  onPress: () => confirmDelete('Delete Glucose?', `${timeOfDay(g.date)}, ${value} ${units}`, () => void deleteGlucose(g)),
                 },
               ]}>
               <Row accessibilityLabel={`${value}, ${manual ? 'manual entry' : g.trend ? TREND_SYMBOL[g.trend] : '--'}, ${timeOfDay(g.date)}`}>

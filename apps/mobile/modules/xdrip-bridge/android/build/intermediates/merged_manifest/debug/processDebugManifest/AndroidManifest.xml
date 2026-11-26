@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="dev.buddy.xdripbridge" >
+
+    <uses-sdk android:minSdkVersion="26" />
+
+    <application>
+
+        <!--
+      xDrip+ ("Inter-app settings > Broadcast locally") sends BgEstimate to the receivers it finds
+      in the manifests of installed apps, so this must be declared statically, not only at runtime.
+      Any app can send this action: see the spoofing note in apps/mobile/README.md.
+        -->
+        <receiver
+            android:name="dev.buddy.xdripbridge.XdripBroadcastReceiver"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="com.eveningoutpost.dexdrip.BgEstimate" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

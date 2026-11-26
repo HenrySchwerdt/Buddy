@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'dev.buddy.nativeservices'
+version = '0.1.0'
+
+android {
+  namespace "dev.buddy.nativeservices"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  // HeadlessJsTaskService / HeadlessJsTaskConfig; the version comes from the app's React Native Gradle plugin.
+  compileOnly "com.facebook.react:react-android"
+}

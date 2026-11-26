@@ -2,7 +2,9 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 import { SymbolView } from '@/trio/symbol';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { QuickPickHost } from '@/features/home/quick-pick-sheet';
+import { openQuickPick } from '@/features/home/quick-pick-store';
 import { useTrioColors } from '@/trio';
 
 /**
@@ -43,16 +45,19 @@ export default function TabsLayout() {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             router.push('/treatment');
           }}
+          onLongPress={openQuickPick}
+          delayLongPress={500}
           style={({ pressed }) => [styles.treat, { opacity: pressed ? 0.7 : 1 }]}>
           <SymbolView name="plus.circle.fill" size={46} tintColor={c.tabBar} type="monochrome" />
         </Pressable>
       </View>
+      <QuickPickHost />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Centre the button on the tab icons: iOS tab bar icons sit 52 pt up, Android's Material bar 66 dp.
-  overlay: { position: 'absolute', left: 0, right: 0, bottom: (Platform.OS === 'android' ? 66 : 52) - 27, alignItems: 'center' },
+  // Centre the button on the tab icons, which sit 52 pt up.
+  overlay: { position: 'absolute', left: 0, right: 0, bottom: 52 - 27, alignItems: 'center' },
   treat: { paddingHorizontal: 24, paddingVertical: 2 },
 });

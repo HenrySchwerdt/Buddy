@@ -7,6 +7,8 @@ import type { CatalogEntry } from './catalog';
 import { DanaSetup } from './dana-setup';
 import { activateDevice, errorText, useDeviceValues } from './device-actions';
 import { DeviceIcon } from './device-icon';
+import { InsightSetup } from './insight-setup';
+import { MinimedSetup } from './minimed-setup';
 import { BENCH_NOTE, MedtrumPatchFlow } from './medtrum-patch-flow';
 import { OmnipodErosSetup } from './omnipod-eros-setup';
 import { OmnipodPodFlow } from './omnipod-pod-flow';
@@ -27,6 +29,10 @@ export function PumpSetup({ entry, onFinished }: { entry: CatalogEntry; onFinish
       return <PodSetup plugin={plugin} entry={entry} onConnected={done} />;
     case 'omnipod-eros':
       return <OmnipodErosSetup plugin={plugin} entry={entry} onConnected={done} />;
+    case 'minimed':
+      return <MinimedSetup plugin={plugin} entry={entry} onConnected={done} />;
+    case 'accu-chek-insight':
+      return <InsightSetup plugin={plugin} entry={entry} onConnected={done} />;
     default:
       return <InstantSetup plugin={plugin} entry={entry} onConnected={done} />;
   }

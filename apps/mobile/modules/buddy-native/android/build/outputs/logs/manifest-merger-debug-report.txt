@@ -1,0 +1,52 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:1:1-24:12
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:1:1-24:12
+	package
+		INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:1:11-69
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:2:3-75
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:2:20-72
+uses-permission#android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:3:3-92
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:3:20-89
+uses-permission#android.permission.FOREGROUND_SERVICE_SPECIAL_USE
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:4:3-87
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:4:20-84
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:5:3-75
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:5:20-72
+uses-permission#android.permission.WAKE_LOCK
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:6:3-66
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:6:20-63
+application
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:8:3-23:17
+service#dev.buddy.nativeservices.BuddyForegroundService
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:15:5-22:15
+	android:exported
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:17:7-31
+	android:foregroundServiceType
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:18:7-65
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:16:7-69
+property#android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE
+ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:19:7-21:174
+	android:value
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:21:9-171
+	android:name
+		ADDED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml:20:9-68
+uses-sdk
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml
+INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/henryschwerdtner/dev/Buddy/apps/mobile/modules/buddy-native/android/src/main/AndroidManifest.xml

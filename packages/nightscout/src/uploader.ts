@@ -1,9 +1,9 @@
 import type { ActiveOverride, ActiveTempTarget, CarbEntry, Clock, GlucoseReading, InsulinDose, Logger, LoopRun, Millis, PumpState } from '@buddy/core';
-import { sha1 } from '@noble/hashes/legacy.js';
-import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 import { mapLoopRunToDeviceStatus } from './devicestatus';
+import { buildHeaders, buildUrl, errorText, hashApiSecret, normalizeBaseUrl } from './http';
 import { mapGlucoseToEntries } from './entries';
-import { mapCarbsToTreatments, mapDosesToTreatments, mapOverrideToTreatment, mapTempTargetToTreatment, type CarbMacros } from './treatments';
+import { mapProfileToStore, type ProfileUploadInput } from './profile';
+import { mapCarbsToTreatments, mapDosesToTreatments, mapNoteToTreatment, mapOverrideToTreatment, mapSensorStartsToTreatments, mapTempTargetToTreatment, type CarbMacros, type SensorSession } from './treatments';
 import type { DeviceStatusOptions } from './types';
 
 /** Nightscout and Trio both cap uploads at 100 documents per request. */
@@ -13,15 +13,19 @@ const PATHS = {
   entries: '/api/v1/entries.json',
   treatments: '/api/v1/treatments.json',
   devicestatus: '/api/v1/devicestatus.json',
+  profile: '/api/v1/profile.json',
 } as const;
 
-export const COLLECTIONS = ['entries', 'doses', 'carbs', 'tempTargets', 'overrides', 'deviceStatus'] as const;
+export const COLLECTIONS = ['entries', 'doses', 'carbs', 'tempTargets', 'overrides', 'sensors', 'deviceStatus'] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 
 /** Per-collection high-water marks (epoch ms of the newest uploaded item). Persist these. */
 export type UploaderState = Readonly<Record<Collection, Millis>>;
 
 export type CollectionResult = { readonly ok: true; readonly uploaded: number } | { readonly ok: false; readonly uploaded: number; readonly error: string };
+
+/** Outcome of a one-off request (profile, note, deletion). `skipped` = no URL configured, nothing was sent. */
+export type ActionResult = { readonly ok: true; readonly skipped: boolean } | { readonly ok: false; readonly error: string };
 
 export interface UploadResult {
   /** True when nothing was attempted because no URL is configured. */
@@ -37,6 +41,8 @@ export interface UploadSnapshot {
   readonly pump: PumpState | null;
   readonly tempTargets?: readonly ActiveTempTarget[];
   readonly overrides?: readonly ActiveOverride[];
+  /** CGM sensor session starts, uploaded as `Sensor Start` treatments (Trio's CGM state notes). */
+  readonly sensors?: readonly SensorSession[];
   readonly uploader?: DeviceStatusOptions;
 }
 
@@ -53,18 +59,9 @@ export interface NightscoutUploaderConfig {
   readonly initialState?: Partial<UploaderState>;
 }
 
-export const EMPTY_STATE: UploaderState = { entries: 0, doses: 0, carbs: 0, tempTargets: 0, overrides: 0, deviceStatus: 0 };
+export const EMPTY_STATE: UploaderState = { entries: 0, doses: 0, carbs: 0, tempTargets: 0, overrides: 0, sensors: 0, deviceStatus: 0 };
 
-/** Lowercase hex SHA-1, the form Nightscout expects in the `api-secret` header. */
-export const hashApiSecret = (secret: string): string => bytesToHex(sha1(utf8ToBytes(secret)));
-
-function normalizeBaseUrl(raw: string): string {
-  const url = raw.trim().replace(/\/+$/, '');
-  if (!/^https:\/\/[^\s/]+/i.test(url)) throw new Error('Nightscout URL must start with https://');
-  return url;
-}
-
-const errorText = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+export { hashApiSecret };
 
 interface Pending {
   readonly date: Millis;
@@ -89,12 +86,38 @@ export function createNightscoutUploader(config: NightscoutUploaderConfig) {
   let state = sanitizeState(config.initialState);
   let inFlight: Promise<UploadResult> | null = null;
 
-  function request(base: string, path: string, body: unknown[]): Promise<Response> {
-    const query = config.token ? `?${new URLSearchParams({ token: config.token }).toString()}` : '';
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
-    if (config.apiSecret) headers['api-secret'] = hashApiSecret(config.apiSecret);
-    return config.fetch(`${base}${path}${query}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  function request(base: string, path: string, body: unknown): Promise<Response> {
+    return config.fetch(buildUrl(base, path, config), { method: 'POST', headers: buildHeaders(config, true), body: JSON.stringify(body) });
   }
+
+  /** Resolves the configured base URL, or why there is none. */
+  function target(): { readonly base: string } | { readonly skipped: true } | { readonly error: string } {
+    if (!config.url.trim()) return { skipped: true };
+    try {
+      return { base: normalizeBaseUrl(config.url) };
+    } catch (e) {
+      return { error: errorText(e) };
+    }
+  }
+
+  async function perform(what: string, call: (base: string) => Promise<Response>): Promise<ActionResult> {
+    const t = target();
+    if ('skipped' in t) return { ok: true, skipped: true };
+    if ('error' in t) return { ok: false, error: t.error };
+    try {
+      const res = await call(t.base);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      config.log.info(`Nightscout: ${what}`);
+      return { ok: true, skipped: false };
+    } catch (e) {
+      const error = `Nightscout ${what} failed: ${errorText(e)}`;
+      config.log.warn(error);
+      return { ok: false, error };
+    }
+  }
+
+  const remove = (path: string, params: readonly (readonly [string, string])[]) => (base: string) =>
+    config.fetch(buildUrl(base, path, config, params), { method: 'DELETE', headers: buildHeaders(config, false) });
 
   async function send(base: string, collection: Collection, path: string, items: readonly Pending[]): Promise<CollectionResult> {
     const now = config.clock.now();
@@ -148,6 +171,7 @@ export function createNightscoutUploader(config: NightscoutUploaderConfig) {
         carbs: await send(base, 'carbs', PATHS.treatments, treatmentsOf(mapCarbsToTreatments(snapshot.carbs))),
         tempTargets: await send(base, 'tempTargets', PATHS.treatments, treatmentsOf((snapshot.tempTargets ?? []).map(mapTempTargetToTreatment))),
         overrides: await send(base, 'overrides', PATHS.treatments, treatmentsOf((snapshot.overrides ?? []).map(mapOverrideToTreatment))),
+        sensors: await send(base, 'sensors', PATHS.treatments, treatmentsOf(mapSensorStartsToTreatments(snapshot.sensors ?? []))),
         deviceStatus: await send(base, 'deviceStatus', PATHS.devicestatus, statuses),
       },
     };
@@ -163,6 +187,29 @@ export function createNightscoutUploader(config: NightscoutUploaderConfig) {
       inFlight = current;
       return current;
     },
+    /** Trio `uploadProfiles`: POSTs the profile store (basal, ISF, CR, targets, override presets). Call after settings change. */
+    uploadProfile: (input: ProfileUploadInput): Promise<ActionResult> =>
+      perform('profile upload', (base) => request(base, PATHS.profile, mapProfileToStore(input))),
+
+    /** Trio `uploadNoteTreatment`: a free-text `Note` treatment at the current time. */
+    uploadNote: (note: string): Promise<ActionResult> =>
+      perform('note upload', (base) => request(base, PATHS.treatments, [mapNoteToTreatment(note, config.clock.now())])),
+
+    /** Trio `deleteCarbs`/`deleteInsulin`: removes treatments whose `id` equals the Buddy record id. */
+    deleteTreatment: (id: string): Promise<ActionResult> =>
+      perform('treatment deletion', remove(PATHS.treatments, [['find[id][$eq]', id]])),
+
+    /** Trio `deleteGlucose`: removes the entry with this id or this exact timestamp. */
+    deleteGlucose: (id: string, date: Millis): Promise<ActionResult> =>
+      perform(
+        'glucose deletion',
+        remove(PATHS.entries, [
+          ['find[$or][0][id][$eq]', id],
+          ['find[$or][1][identifier][$eq]', id],
+          ['find[$or][2][dateString][$eq]', new Date(date).toISOString()],
+        ]),
+      ),
+
     getState: (): UploaderState => state,
     setState(next: Partial<UploaderState>): void {
       state = sanitizeState({ ...state, ...next });

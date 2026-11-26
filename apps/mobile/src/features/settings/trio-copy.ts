@@ -584,7 +584,7 @@ export const TRIO_COPY = {
     "hint": [
       "**Default: OFF",
       "When enabled, long-pressing the + button on the home screen opens a Quick-Pick Treatments sheet. It suggests up to three bolus amounts and, if you have carb history, up to three carb amounts based on what you typically enter at this time of day, weighted by recency and day type (weekday vs. weekend).",
-      "Tap a bolus amount, a carb amount, or both, then slide to confirm. Face ID or Touch ID is always required before a bolus is enacted."
+      "Tap a bolus amount, a carb amount, or both, then slide to confirm. Face ID, Touch ID, your fingerprint or the device passcode is always required before a bolus is enacted."
     ]
   }
 } as const satisfies Record<string, TrioSettingCopy>;

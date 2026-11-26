@@ -6,12 +6,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Platform, StatusBar as RNStatusBar } from 'react-native';
+import { installLogCapture } from '@/features/about/log-buffer';
 import { useSettings } from '@/runtime/settings-store';
 import { startRuntime } from '@/runtime/runtime';
 import { useTheme } from '@/theme/use-theme';
 import { ChoiceDialogHost } from '@/trio/choice-dialog';
 import { useTrioColors } from '@/trio';
 
+installLogCapture();
 void SplashScreen.preventAutoHideAsync();
 
 function useHydrated() {
@@ -19,6 +21,9 @@ function useHydrated() {
   useEffect(() => useSettings.persist.onFinishHydration(() => setHydrated(true)), []);
   return hydrated;
 }
+
+/** A deep link (buddy://shortcut) opens on top of the tabs, so closing it lands on Home. */
+export const unstable_settings = { anchor: '(tabs)' };
 
 export default function RootLayout() {
   const theme = useTheme();
@@ -36,7 +41,7 @@ export default function RootLayout() {
   if (!hydrated || !fontsLoaded) return null;
   const nav = theme.dark ? DarkTheme : DefaultTheme;
   // Android has no page sheets: they open full screen, so the content starts below the status bar.
-  const sheet = { presentation: 'pageSheet' as const, headerShown: false, contentStyle: { backgroundColor: Platform.OS === 'android' ? trio.bgBottom : theme.bgBottom, paddingTop: Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0 } };
+  const sheet = { presentation: 'pageSheet' as const, headerShown: false, contentStyle: { backgroundColor: theme.bgBottom, paddingTop: Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0 } };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -58,6 +63,10 @@ export default function RootLayout() {
           <Stack.Screen name="add-cgm" options={sheet} />
           <Stack.Screen name="pump-settings" options={sheet} />
           <Stack.Screen name="cgm-settings" options={sheet} />
+          <Stack.Screen name="calibrations" options={sheet} />
+          <Stack.Screen name="release-notes" options={sheet} />
+          <Stack.Screen name="report-problem" options={sheet} />
+          <Stack.Screen name="shortcut" options={sheet} />
         </Stack.Protected>
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" />

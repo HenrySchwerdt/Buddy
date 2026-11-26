@@ -1,8 +1,11 @@
 import { StyleSheet, View } from 'react-native';
-import { useTreatmentBoolean, useTreatmentDecimal, usePrefDecimal, NOT_USED_NOTE } from '@/features/settings/bindings';
+import { useTreatmentBoolean, useTreatmentDecimal, usePrefDecimal } from '@/features/settings/bindings';
 import { DecimalLine, HintedSection, SettingInputSection } from '@/features/settings/components/setting-input-section';
 import { SettingsScreen } from '@/features/settings/components/settings-screen';
 import { TRIO_COPY } from '@/features/settings/trio-copy';
+import { startMealAbsorptionSync } from '@/features/settings-b/meal-absorption';
+
+startMealAbsorptionSync();
 
 const LIMITS_HINT = {
   label: 'Limits per Entry',
@@ -24,7 +27,7 @@ export default function MealSettings() {
           {fpu.value ? <DecimalLine label="Max Protein" binding={maxProtein} /> : null}
         </View>
       </HintedSection>
-      <SettingInputSection copy={TRIO_COPY.maxMealAbsorptionTime} decimal={usePrefDecimal('maxMealAbsorptionTime', 'maxMealAbsorptionTime')} note={NOT_USED_NOTE} />
+      <SettingInputSection copy={TRIO_COPY.maxMealAbsorptionTime} decimal={usePrefDecimal('maxMealAbsorptionTime', 'maxMealAbsorptionTime')} />
       <SettingInputSection copy={TRIO_COPY.useFPUconversion} boolean={fpu} />
       {fpu.value ? (
         <>

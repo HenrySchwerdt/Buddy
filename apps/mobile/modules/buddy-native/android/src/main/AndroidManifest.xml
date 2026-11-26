@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+  <application>
+    <!--
+      Keeps the app process (and with it the JS runtime that runs the loop) alive while a real pump or CGM is
+      configured. The service extends React Native's HeadlessJsTaskService: its headless task "BuddyForeground"
+      (registered in src/runtime/background.ts) keeps JS timers running and restarts the runtime after the process
+      was killed. connectedDevice is used when a Bluetooth permission is granted, specialUse otherwise.
+    -->
+    <service
+      android:name="dev.buddy.nativeservices.BuddyForegroundService"
+      android:exported="false"
+      android:foregroundServiceType="connectedDevice|specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="Automated insulin delivery research app: keeps the loop and CGM/pump connection running and shows glucose, IOB and COB in an ongoing notification." />
+    </service>
+  </application>
+</manifest>

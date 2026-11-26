@@ -5,3 +5,4 @@ export * from './buttons';
 export * from './form';
 export * from './screens';
 export * from './segmented';
+export * from './switch';

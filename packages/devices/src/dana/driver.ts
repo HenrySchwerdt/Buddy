@@ -111,6 +111,8 @@ export class DanaPumpDriver implements PumpDriver {
   private readonly seenHistory = new Set<string>();
   /** Pump clock minus phone clock, from the last pump-time read (ms). */
   private pumpClockOffset = 0;
+  /** True once the pump time was read, so an offset of 0 means "in sync" and not "unknown". */
+  private pumpClockKnown = false;
 
   private pincodeResolver: ((p: Pincodes) => void) | null = null;
   private readonly pincodeListeners = new Set<() => void>();
@@ -551,6 +553,7 @@ export class DanaPumpDriver implements PumpDriver {
       const r = usingUtc(this.session) ? await this.send(danaGeneralGetPumpTimeUtcWithTimezone()) : await this.send(danaGeneralGetPumpTime());
       if (!r.success || !r.data) return null;
       this.pumpClockOffset = r.data.time - this.clock.now();
+      this.pumpClockKnown = true;
       return r.data.time;
     } catch (e) {
       this.log.error(`Dana: failed to fetch pump time: ${errorText(e)}`);
@@ -795,6 +798,7 @@ export class DanaPumpDriver implements PumpDriver {
       bolusIncrement: BOLUS_INCREMENT,
       basalIncrement: BASAL_INCREMENT,
       lastSync: this.lastSync,
+      clockOffsetMs: this.pumpClockKnown ? this.pumpClockOffset : null,
     };
   }
 }

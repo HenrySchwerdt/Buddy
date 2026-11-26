@@ -82,8 +82,20 @@ export interface ReferenceDecision {
   readonly predictions?: { readonly iob?: readonly number[]; readonly zt?: readonly number[]; readonly cob?: readonly number[]; readonly uam?: readonly number[] };
 }
 
+/** Where the current CGM sensor is in its life; read-only, from state the driver already has. */
+export interface CgmSensorInfo {
+  /** When the sensor session started (epoch ms). */
+  readonly startedAt: Millis;
+  /** When the session ends (epoch ms). */
+  readonly expiresAt: Millis;
+  /** When warm-up ends and readings start, while the sensor is still warming up. */
+  readonly warmupEndsAt?: Millis | null;
+}
+
 export interface CgmSource {
   readonly meta: DeviceMeta;
+  /** Current sensor session, or null when the driver does not know one (yet). */
+  sensorInfo?(): CgmSensorInfo | null;
   start(): Promise<void>;
   stop(): Promise<void>;
   /** Readings with `date > since`, any order. */

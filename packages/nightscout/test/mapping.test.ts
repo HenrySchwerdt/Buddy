@@ -153,7 +153,7 @@ describe('mapLoopRunToDeviceStatus (NightscoutStatus field names)', () => {
       pump: {
         clock: iso(T0 - MIN),
         reservoir: 132.46,
-        battery: { percent: 70 },
+        battery: { percent: 70, string: 'normal' },
         status: { status: 'normal', bolusing: false, suspended: false, timestamp: iso(T0 - MIN) },
         bolusIncrement: 0.05,
       },

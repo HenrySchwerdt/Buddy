@@ -32,10 +32,7 @@ export interface TreatmentRow {
   readonly title: string;
   readonly amount?: string;
   readonly duration?: string;
-  /**
-   * Trio only offers deletion for bolus events it may remove. Buddy has no dose deletion yet, so
-   * none is deletable (pump doses come from the pump, external insulin stays in the log).
-   */
+  /** Trio offers deletion for bolus events only (`item.bolus != nil`): boluses, SMBs and external insulin. */
   readonly deletable: boolean;
 }
 
@@ -59,8 +56,8 @@ export function treatmentRows(doses: readonly InsulinDose[], now: number): Treat
       switch (d.kind) {
         case 'bolus':
         case 'smb':
-          if (isExternalDose(d)) return { id: d.id, date: d.date, type: 'externalBolus', dot: 'insulin', title: 'External Insulin', amount: `${upTo3(d.units)} U`, deletable: false };
-          return { id: d.id, date: d.date, type: d.kind, dot: 'insulin', title: d.kind === 'smb' ? 'SMB' : 'Bolus', amount: `${upTo3(d.units)} U`, deletable: false };
+          if (isExternalDose(d)) return { id: d.id, date: d.date, type: 'externalBolus', dot: 'insulin', title: 'External Insulin', amount: `${upTo3(d.units)} U`, deletable: true };
+          return { id: d.id, date: d.date, type: d.kind, dot: 'insulin', title: d.kind === 'smb' ? 'SMB' : 'Bolus', amount: `${upTo3(d.units)} U`, deletable: true };
         case 'tempBasal':
           return {
             id: d.id,
@@ -77,6 +74,11 @@ export function treatmentRows(doses: readonly InsulinDose[], now: number): Treat
       }
     })
     .sort((a, b) => b.date - a.date);
+}
+
+/** DeletionTarget.insulin message: "10:15, 1.5 U" plus " SMB" for super micro boluses. */
+export function insulinDeleteMessage(row: Pick<TreatmentRow, 'date' | 'amount' | 'type'>): string {
+  return `${timeOfDay(row.date)}, ${row.amount ?? '0 U'}${row.type === 'smb' ? ' SMB' : ''}`;
 }
 
 export interface MealRow {

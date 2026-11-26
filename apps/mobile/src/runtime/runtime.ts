@@ -21,7 +21,7 @@ import {
   type PumpState,
 } from '@buddy/core';
 import { createAlgorithmRegistry } from '@buddy/algorithms';
-import { createCgmRegistry, createPumpRegistry, demoHub, pairSensor, parseNightscoutProfile } from '@buddy/devices';
+import { createCgmRegistry, createPumpRegistry, demoHub, installAppIdentities, Libre3PairingError, pairLibre3Sensor, pairSensor, parseNightscoutProfile } from '@buddy/devices';
 import { loadSecrets } from './secrets';
 import { processAlerts, uploadToNightscout } from './services';
 import { bleTransport } from './transports/ble';
@@ -328,4 +328,24 @@ export async function importNightscoutProfile(): Promise<void> {
 export async function pairLibreSensor(): Promise<string> {
   const info = await pairSensor({ nfc: nfcTransport, secrets: keychainSecretStore, log });
   return `Sensor ${info.serialNumber} (${String(info.sensorType)}) paired${info.streamingEnabled ? ', Bluetooth streaming enabled' : ''}.`;
+}
+
+/** Result of a Libre 3 NFC scan: paired, or a factory-fresh sensor that needs the user's go-ahead to activate. */
+export type Libre3PairResult = { readonly kind: 'paired'; readonly text: string } | { readonly kind: 'needsActivation' };
+
+/**
+ * Libre 3: installs the user's app credential (keychain only), then reads the sensor via NFC and
+ * stores its Bluetooth pairing. Activating a fresh sensor starts its wear clock, so it only happens
+ * when `allowActivation` is set after the user confirmed.
+ */
+export async function pairLibre3(credential: string, allowActivation: boolean): Promise<Libre3PairResult> {
+  const json = credential.trim();
+  if (json) await installAppIdentities(keychainSecretStore, json);
+  try {
+    const info = await pairLibre3Sensor({ nfc: nfcTransport, secrets: keychainSecretStore, log, clock: { now } }, { allowActivation });
+    return { kind: 'paired', text: `Sensor ${info.serialNumber} paired${info.activated ? ', warm-up started (60 min)' : ''}.` };
+  } catch (e) {
+    if (e instanceof Libre3PairingError && e.code === 'activationNotAllowed') return { kind: 'needsActivation' };
+    throw e;
+  }
 }

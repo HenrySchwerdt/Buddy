@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 132">
+  <!-- Original drawing: generic round sensor puck (two-step housing), top view. -->
+  <defs>
+    <radialGradient id="pad" cx="0.5" cy="0.5" r="0.5"><stop offset="0.8" stop-color="#e9ebef"/><stop offset="1" stop-color="#cdd2d9"/></radialGradient>
+    <radialGradient id="disc" cx="0.38" cy="0.32" r="0.85"><stop offset="0" stop-color="#f4f5f7"/><stop offset="1" stop-color="#a9b1bc"/></radialGradient>
+    <radialGradient id="cap" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#e6e9ed"/><stop offset="1" stop-color="#8f98a5"/></radialGradient>
+  </defs>
+  <circle cx="66" cy="66" r="62" fill="url(#pad)" stroke="#bcc2ca" stroke-width="1.5"/>
+  <circle cx="66" cy="66" r="46" fill="url(#disc)" stroke="#7d8591" stroke-width="2"/>
+  <circle cx="66" cy="66" r="26" fill="url(#cap)" stroke="#7d8591" stroke-width="2"/>
+  <circle cx="66" cy="66" r="6" fill="#6b737e"/>
+</svg>

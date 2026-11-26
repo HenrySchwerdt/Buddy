@@ -10,6 +10,8 @@ import { CapsuleButton, NavRow, PrimaryButton, Row, Section, SheetScreen, T, use
 import { deleteDevice, deviceErrors, errorText, saveDeviceValues, useActiveDevice, useDeviceValues } from '@/features/devices/device-actions';
 import { HardwareCheck } from '@/features/devices/hardware-check';
 import { MedtrumPatchFlow } from '@/features/devices/medtrum-patch-flow';
+import { OmnipodErosPodFlow } from '@/features/devices/omnipod-eros-pod-flow';
+import { OmnipodPodFlow } from '@/features/devices/omnipod-pod-flow';
 import { PluginForm } from '@/features/devices/plugin-form';
 import { upTo3 } from '@/features/history/rows';
 import { PumpStatusCard, type PumpLife } from '@/features/devices/pump-status-card';
@@ -42,8 +44,8 @@ export default function PumpSettings() {
       );
     case 'patch':
       return (
-        <SheetScreen title="Patch" leading={back}>
-          <MedtrumPatchFlow />
+        <SheetScreen title={plugin.meta.id === 'medtrum-nano' ? 'Patch' : 'Pod'} leading={back}>
+          {plugin.meta.id === 'medtrum-nano' ? <MedtrumPatchFlow /> : plugin.meta.id === 'omnipod-eros' ? <OmnipodErosPodFlow /> : <OmnipodPodFlow />}
         </SheetScreen>
       );
     case 'hardware':
@@ -205,6 +207,7 @@ function MainPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
       <Section header="Configuration">
         {plugin.meta.maturity !== 'simulator' ? <NavRow label="Pump Settings" onPress={() => onNavigate('device')} /> : null}
         {plugin.meta.id === 'medtrum-nano' ? <NavRow label="Patch" onPress={() => onNavigate('patch')} /> : null}
+        {plugin.meta.id === 'omnipod-dash' || plugin.meta.id === 'omnipod-eros' ? <NavRow label="Pod" onPress={() => onNavigate('patch')} /> : null}
         {plugin.meta.requiresHardwareCheck ? <NavRow label="Hardware Check" value={hwDone ? 'Completed' : 'Required'} onPress={() => onNavigate('hardware')} /> : null}
         <ValueRow label="Current Basal Rate" value={`${upTo3(temp ? temp.rate : scheduled)} U/hr`} />
         <ValueRow label="Last Sync" value={pump ? new Date(pump.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'} />

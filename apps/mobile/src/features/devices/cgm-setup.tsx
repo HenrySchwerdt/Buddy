@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform } from 'react-native';
+import { ActivityIndicator, Alert, Platform } from 'react-native';
 import type { CgmPlugin } from '@buddy/core';
-import { cgms, pairLibreSensor } from '@/runtime/runtime';
+import { cgms, pairLibre3, pairLibreSensor } from '@/runtime/runtime';
 import { PrimaryButton, Row, Section, T, useTrioColors } from '@/trio';
 import type { CatalogEntry } from './catalog';
 import { activateDevice, errorText, useDeviceValues } from './device-actions';
@@ -15,6 +15,7 @@ export function CgmSetup({ entry, onFinished }: { entry: CatalogEntry; onFinishe
   if (!plugin) return <T secondary>{entry.name} is not available in this build.</T>;
   if (plugin.meta.id === 'demo-cgm') return <InstantCgmSetup plugin={plugin} entry={entry} onFinished={onFinished} />;
   if (plugin.meta.id === 'dexcom-g6') return <TransmitterSetup plugin={plugin} entry={entry} onFinished={onFinished} />;
+  if (plugin.meta.id === 'libre-3-direct') return <Libre3Setup plugin={plugin} entry={entry} onFinished={onFinished} />;
   return <FormSetup plugin={plugin} entry={entry} onFinished={onFinished} />;
 }
 
@@ -149,6 +150,64 @@ function LibreSetup({ entry, onFinished }: { entry: CatalogEntry; onFinished: ()
       ) : null}
       <ErrorText error={error} />
       <PrimaryButton label="Continue" disabled={mode === 'libre-2-direct' && !paired} loading={busy} onPress={() => void connect(values)} />
+    </>
+  );
+}
+
+const confirmActivation = () =>
+  new Promise<boolean>((resolve) =>
+    Alert.alert('Activate new sensor?', 'This sensor has not been started yet. Activating it starts its 60-minute warm-up and its wear time, and cannot be undone.', [
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Activate', onPress: () => resolve(true) },
+    ]),
+  );
+
+/** LibreLoop onboarding: app credential → NFC scan (activate or switch receiver) → Bluetooth. */
+function Libre3Setup({ plugin, entry, onFinished }: { plugin: CgmPlugin; entry: CatalogEntry; onFinished: () => void }) {
+  const c = useTrioColors();
+  const { values, setValue } = useDeviceValues(plugin);
+  const { busy, error, connect } = useConnect(plugin, entry, onFinished);
+  const [paired, setPaired] = useState<string | null>(null);
+  const [pairing, setPairing] = useState(false);
+  const [pairError, setPairError] = useState<string | null>(null);
+  const credential = String(values.appCredential ?? '');
+
+  const pair = async () => {
+    setPairing(true);
+    setPairError(null);
+    try {
+      let result = await pairLibre3(credential, false);
+      if (result.kind === 'needsActivation') {
+        if (!(await confirmActivation())) return;
+        result = await pairLibre3(credential, true);
+      }
+      if (result.kind === 'paired') setPaired(result.text);
+    } catch (e) {
+      setPairError(errorText(e));
+    } finally {
+      setPairing(false);
+    }
+  };
+
+  return (
+    <>
+      <Section header="Configuration">
+        <TextRow secondary>{plugin.meta.description}</TextRow>
+      </Section>
+      <PluginForm sections={plugin.settings} values={values} onChange={setValue} keys={['appCredential']} headers={false} />
+      <Section header="Sensor" footer={`Hold the ${Platform.OS === 'android' ? 'back of your phone' : 'top of your iPhone'} to the sensor. A new sensor is only activated after you confirm.`}>
+        <Row onPress={pairing ? undefined : () => void pair()}>
+          <T color={c.tabBar} style={{ flex: 1 }}>
+            Pair Sensor
+          </T>
+          {pairing ? <ActivityIndicator /> : null}
+        </Row>
+        {paired ? <TextRow secondary>{paired}</TextRow> : null}
+      </Section>
+      <ErrorText error={pairError} />
+      <PluginForm sections={plugin.settings} values={values} onChange={setValue} keys={['minuteByMinute', 'useNonActionable']} headers={false} />
+      <ErrorText error={error} />
+      <PrimaryButton label="Continue" disabled={!paired} loading={busy} onPress={() => void connect(values)} />
     </>
   );
 }

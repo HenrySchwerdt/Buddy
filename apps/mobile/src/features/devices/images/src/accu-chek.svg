@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 132">
+  <!-- Original drawing: generic round sensor disc on an adhesive ring, top view. -->
+  <defs>
+    <radialGradient id="pad" cx="0.5" cy="0.5" r="0.5"><stop offset="0.75" stop-color="#eef0f3"/><stop offset="1" stop-color="#d3d7dd"/></radialGradient>
+    <radialGradient id="disc" cx="0.38" cy="0.32" r="0.85"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#b9c0ca"/></radialGradient>
+  </defs>
+  <circle cx="66" cy="66" r="62" fill="url(#pad)" stroke="#c3c8cf" stroke-width="1.5"/>
+  <circle cx="66" cy="66" r="42" fill="url(#disc)" stroke="#8d95a1" stroke-width="2"/>
+  <circle cx="66" cy="66" r="30" fill="none" stroke="#c9ced6" stroke-width="2"/>
+  <circle cx="66" cy="66" r="7" fill="#9aa2ae" stroke="#7d8591" stroke-width="1.5"/>
+</svg>

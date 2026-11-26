@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 88">
+  <!-- Original drawing: generic tube pump with a reservoir window, neutral greys. -->
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dde3"/><stop offset="1" stop-color="#a9b0ba"/></linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b424b"/><stop offset="1" stop-color="#232830"/></linearGradient>
+  </defs>
+  <rect x="4" y="4" width="124" height="80" rx="14" fill="url(#body)" stroke="#7d8591" stroke-width="2"/>
+  <rect x="14" y="13" width="64" height="32" rx="5" fill="url(#screen)"/>
+  <rect x="21" y="21" width="30" height="4" rx="2" fill="#aeb7c2"/>
+  <rect x="21" y="30" width="46" height="4" rx="2" fill="#7d8896"/>
+  <rect x="88" y="13" width="30" height="32" rx="5" fill="#eef1f5" stroke="#7d8591" stroke-width="2"/>
+  <rect x="93" y="25" width="20" height="15" rx="2" fill="#c4ccd6"/>
+  <circle cx="26" cy="64" r="7" fill="#eef1f5" stroke="#7d8591" stroke-width="2"/>
+  <circle cx="48" cy="64" r="7" fill="#eef1f5" stroke="#7d8591" stroke-width="2"/>
+  <circle cx="70" cy="64" r="7" fill="#eef1f5" stroke="#7d8591" stroke-width="2"/>
+  <circle cx="106" cy="66" r="8" fill="#8a929d" stroke="#6b737e" stroke-width="2"/>
+  <circle cx="106" cy="66" r="3" fill="#3b424b"/>
+</svg>

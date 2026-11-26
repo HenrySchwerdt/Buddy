@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 132">
+  <!-- Original drawing: generic small coin-shaped sensor, top view. -->
+  <defs>
+    <radialGradient id="pad" cx="0.5" cy="0.5" r="0.5"><stop offset="0.7" stop-color="#eceef1"/><stop offset="1" stop-color="#cfd4db"/></radialGradient>
+    <radialGradient id="disc" cx="0.38" cy="0.32" r="0.9"><stop offset="0" stop-color="#fafbfc"/><stop offset="1" stop-color="#aeb6c1"/></radialGradient>
+  </defs>
+  <circle cx="66" cy="66" r="62" fill="url(#pad)" stroke="#bcc2ca" stroke-width="1.5"/>
+  <circle cx="66" cy="66" r="32" fill="url(#disc)" stroke="#7d8591" stroke-width="2"/>
+  <path d="M50 66 a16 16 0 0 1 32 0" fill="none" stroke="#9aa2ae" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="66" cy="66" r="4" fill="#7d8591"/>
+</svg>

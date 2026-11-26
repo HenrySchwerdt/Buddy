@@ -9,6 +9,8 @@ import { activateDevice, errorText, useDeviceValues } from './device-actions';
 import { DeviceIcon } from './device-icon';
 import { HardwareCheck } from './hardware-check';
 import { BENCH_NOTE, MedtrumPatchFlow } from './medtrum-patch-flow';
+import { OmnipodErosSetup } from './omnipod-eros-setup';
+import { OmnipodPodFlow } from './omnipod-pod-flow';
 import { PluginForm, TextFieldRow } from './plugin-form';
 import { TextRow } from './setup-rows';
 
@@ -27,6 +29,10 @@ export function PumpSetup({ entry, onFinished }: { entry: CatalogEntry; onFinish
       return <DanaSetup plugin={plugin} entryId={entry.id} onConnected={done} />;
     case 'medtrum-nano':
       return <MedtrumSetup plugin={plugin} entry={entry} onConnected={done} />;
+    case 'omnipod-dash':
+      return <PodSetup plugin={plugin} entry={entry} onConnected={done} />;
+    case 'omnipod-eros':
+      return <OmnipodErosSetup plugin={plugin} entry={entry} onConnected={done} />;
     default:
       return <InstantSetup plugin={plugin} entry={entry} onConnected={done} />;
   }
@@ -145,4 +151,54 @@ function MedtrumSetup({ plugin, entry, onConnected }: { plugin: PumpPlugin; entr
         </>
       );
   }
+}
+
+/** OmnipodKit onboarding: pod settings → pair, prime and start a pod (or later from Pump Settings → Pod). */
+function PodSetup({ plugin, entry, onConnected }: { plugin: PumpPlugin; entry: CatalogEntry; onConnected: () => void }) {
+  const c = useTrioColors();
+  const { values, setValue } = useDeviceValues(plugin);
+  const [connected, setConnected] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const connect = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await activateDevice('pump', plugin, values, entry.id);
+      setConnected(true);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (connected)
+    return (
+      <>
+        <Section>
+          <TextRow secondary>Pair, prime and start a pod now, or later from Pump Settings → Pod.</TextRow>
+        </Section>
+        <OmnipodPodFlow onActivated={onConnected} />
+        <PrimaryButton label="Continue Without Pod" color={c.fill} onPress={onConnected} />
+      </>
+    );
+  return (
+    <>
+      <Section>
+        <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+          <DeviceIcon entry={entry} size={120} background="transparent" />
+        </View>
+        <TextRow>{plugin.meta.description}</TextRow>
+      </Section>
+      <PluginForm sections={plugin.settings} values={values} onChange={setValue} />
+      {error ? (
+        <T color={c.red} style={{ marginHorizontal: 20 }}>
+          {error}
+        </T>
+      ) : null}
+      <PrimaryButton label="Save and continue" loading={busy} onPress={() => void connect()} />
+    </>
+  );
 }

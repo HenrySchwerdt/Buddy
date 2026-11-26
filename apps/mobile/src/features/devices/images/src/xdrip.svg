@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 132">
+  <!-- Original drawing: drop with a glucose trend arrow (template image, tinted by the app). -->
+  <path d="M66 10 C66 10 22 58 22 86 A44 44 0 0 0 110 86 C110 58 66 10 66 10 Z" fill="none" stroke="#000" stroke-width="7" stroke-linejoin="round"/>
+  <g fill="none" stroke="#000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M46 98 L84 68"/>
+    <path d="M66 66 L86 66 L86 86"/>
+  </g>
+</svg>

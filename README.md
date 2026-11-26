@@ -29,10 +29,13 @@ built with React Native / Expo (TypeScript) as a port of [Trio](https://github.c
 
 | Kind | Plugins |
 | --- | --- |
-| Pumps | Demo pump (virtual patient), Follow Trio via Nightscout (shadow mode, read-only), Dana-i / Dana RS, Medtrum Nano |
-| CGMs | Demo CGM, Nightscout, Dexcom Share, Dexcom G6, Dexcom G7, Libre |
+| Pumps | Demo pump (virtual patient), Follow Trio via Nightscout (shadow mode, read-only), Dana-i / Dana RS, Medtrum Nano, Omnipod DASH, Omnipod Classic (Eros) via RileyLink |
+| CGMs | Demo CGM, Nightscout, Dexcom Share, Dexcom G5 / G6, Dexcom G7, Libre 1 / 2 (direct or transmitter), Libre 3 direct (needs your own app credential) and via LibreLinkUp, Syai Ultra |
 
-Hardware drivers are TypeScript ports of MIT-licensed Swift drivers (DanaKit, MedtrumKit, as used by Trio) and are
+Not supported: MiniMed, Eversense, Accu-Chek SmartGuide (their Swift kits carry no licence, so neither code nor artwork is used) and xDrip4iOS.
+
+Hardware drivers are TypeScript ports of MIT-licensed Swift drivers (DanaKit, MedtrumKit, OmnipodKit, RileyLinkKit,
+RoundWhiteDiscKit / LibreLoop, SyaiKit, as used by Trio) and are
 **experimental**: verified against protocol simulators and the original test vectors, not yet
 on hardware. Pumps need the in-app hardware check before closed loop (see above).
 
@@ -122,6 +125,9 @@ several places, so the facts are listed here (checked against a local checkout o
 | --- | --- | --- |
 | `packages/algorithms/src/oref/engine` (TypeScript port of `determine-basal.js` and friends) | oref0 via `trio-oref` | MIT; the notice is kept in `packages/algorithms/src/oref/LICENSE-oref` |
 | `packages/devices` Dana / Medtrum drivers | DanaKit, MedtrumKit (Swift) | MIT (`DanaKit/LICENSE`, `MedtrumKit/LICENSE` in the Trio tree) |
+| `packages/devices` Omnipod (DASH, Eros) and RileyLink drivers | OmnipodKit, RileyLinkKit (Swift) | MIT (`OmnipodKit/LICENSE`, `RileyLinkKit/LICENSE`) |
+| `packages/devices` Libre 3 and Syai drivers | RoundWhiteDiscKit, LibreLoop, SyaiKit (Swift) | MIT (`RoundWhiteDiscKit/LICENSE`, `LibreLoop/LICENSE`, `SyaiKit/LICENSE`) |
+| `apps/mobile/src/features/devices/images` | device artwork of the MIT kits above, plus original drawings | see `NOTICE` |
 | `apps/mobile` screens, layout, behaviour and defaults (iOS UI is a 1:1 port) | Trio dev app (SwiftUI) | Trio's top-level `LICENSE.txt`: MIT, Copyright (c) 2021 Ivan Valkou |
 | `apps/mobile/src/features/settings/trio-copy.ts`, `features/onboarding/texts.ts` and other help texts | Trio dev help texts, mostly verbatim | same as the line above |
 | `docs/trio-reference/*.png` | screenshots of the Trio dev UI | same as the line above (screenshots, not code) |

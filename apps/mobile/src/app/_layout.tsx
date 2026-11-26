@@ -1,3 +1,4 @@
+import '@/runtime/crypto-polyfill';
 import { Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold, Nunito_900Black, useFonts } from '@expo-google-fonts/nunito';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';

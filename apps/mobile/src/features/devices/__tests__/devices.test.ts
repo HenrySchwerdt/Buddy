@@ -1,7 +1,9 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import type { InsulinDose } from '@buddy/core';
 import { BUILT_IN_CGMS, BUILT_IN_PUMPS } from '@buddy/devices';
-import { catalogSections, CGM_CATALOG, entryForPlugin, isSupported, PUMP_CATALOG, setupErrors } from '../catalog';
+import { catalogSections, CGM_CATALOG, DEVICE_IMAGE_KEYS, entryForPlugin, isSupported, PUMP_CATALOG, setupErrors } from '../catalog';
 import { bolusMatches, deliveredBolusSince, linkDropBolus, testTempBasalRate } from '../hardware-check-logic';
 
 describe('device catalog', () => {
@@ -23,14 +25,21 @@ describe('device catalog', () => {
 
   test('devices without a Buddy driver are listed but not selectable', () => {
     const unsupported = [...PUMP_CATALOG, ...CGM_CATALOG].filter((e) => !isSupported(e)).map((e) => e.name);
-    expect(unsupported).toEqual(['Omnipod', 'MiniMed', 'Accu-Chek SmartGuide', 'Eversense', 'Syai Ultra', 'xDrip4iOS']);
+    expect(unsupported).toEqual(['MiniMed', 'Accu-Chek SmartGuide', 'Eversense', 'xDrip4iOS']);
   });
 
   test('Libre 3 / 3+ is selectable and backed by the LibreLinkUp follower', () => {
     const e = CGM_CATALOG.find((c) => c.id === 'LibreLoopCGMManager');
-    expect(e?.name).toBe('FreeStyle Libre 3 / 3+ (Beta)');
+    expect(e?.name).toBe('FreeStyle Libre 3 / 3+ (cloud)');
     expect(e && isSupported(e)).toBe(true);
     expect(entryForPlugin('cgm', 'libre-link-up')?.id).toBe('LibreLoopCGMManager');
+  });
+
+  test('Libre 3 direct, Syai Ultra and Omnipod DASH are backed by their drivers', () => {
+    expect(entryForPlugin('cgm', 'libre-3-direct')?.id).toBe('LibreLoopDirect');
+    expect(entryForPlugin('cgm', 'syai-ultra')?.id).toBe('SyaiCGMManager');
+    expect(entryForPlugin('pump', 'omnipod-dash')?.id).toBe('Omni');
+    expect(entryForPlugin('pump', 'omnipod-eros')?.id).toBe('OmniEros');
   });
 
   test('entryForPlugin keeps the entry the user picked (G5 vs G6 share a driver)', () => {
@@ -50,6 +59,31 @@ describe('device catalog', () => {
     expect(setupErrors('libre-link-up', { email: 'a@b.c', password: 'x' })).toEqual([]);
     expect(setupErrors('libre-link-up', { email: 'a@b.c', password: '' })).toHaveLength(1);
     expect(setupErrors('demo-pump', {})).toEqual([]);
+  });
+});
+
+describe('device artwork', () => {
+  const devicesDir = join(__dirname, '..');
+  const iconSource = readFileSync(join(devicesDir, 'device-icon.tsx'), 'utf8');
+  const mapped = [...iconSource.matchAll(/^\s+'?([a-z0-9-]+)'?: require\('\.\/images\/([a-z0-9-]+\.png)'\)/gm)].map((m) => ({ key: m[1], file: m[2] }));
+
+  test('every catalog entry has an image', () => {
+    const missing = [...PUMP_CATALOG, ...CGM_CATALOG].filter((e) => e.image === null).map((e) => e.name);
+    expect(missing).toEqual([]);
+  });
+
+  test('every catalog image key is a known DeviceImage key', () => {
+    for (const e of [...PUMP_CATALOG, ...CGM_CATALOG]) expect(DEVICE_IMAGE_KEYS).toContain(e.image);
+  });
+
+  test('DEVICE_IMAGES has exactly one existing PNG per DeviceImage key', () => {
+    expect(mapped.map((m) => m.key).sort()).toEqual([...DEVICE_IMAGE_KEYS].sort());
+    for (const m of mapped) expect(existsSync(join(devicesDir, 'images', m.file)), m.file).toBe(true);
+  });
+
+  test('drawn artwork keeps its SVG source next to the PNG', () => {
+    const drawn = ['minimed', 'insight', 'eversense', 'accu-chek', 'libre', 'libre-3', 'dexcom-share', 'xdrip', 'nightscout'];
+    for (const name of drawn) expect(existsSync(join(devicesDir, 'images', 'src', `${name}.svg`)), name).toBe(true);
   });
 });
 

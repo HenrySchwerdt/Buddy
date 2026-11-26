@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 110">
+  <!-- Original drawing: generic round on-skin transmitter disc, slightly tilted. -->
+  <defs>
+    <radialGradient id="top" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#e3e7ec"/><stop offset="1" stop-color="#98a1ad"/></radialGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d8591"/><stop offset="1" stop-color="#555c66"/></linearGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000" stop-opacity="0.28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="66" cy="90" rx="52" ry="12" fill="url(#shadow)"/>
+  <path d="M10 56 v10 a56 24 0 0 0 112 0 v-10 z" fill="url(#side)"/>
+  <ellipse cx="66" cy="56" rx="56" ry="26" fill="url(#top)" stroke="#6b737e" stroke-width="1.5"/>
+  <ellipse cx="66" cy="54" rx="40" ry="18" fill="none" stroke="#aab2bd" stroke-width="2"/>
+  <ellipse cx="66" cy="54" rx="6" ry="3.2" fill="#5b6470"/>
+</svg>

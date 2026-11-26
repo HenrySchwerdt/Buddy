@@ -25,3 +25,38 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Device drivers in packages/devices are TypeScript ports of the following Swift
+device kits as embedded in Trio. Each is distributed under the MIT License with
+the copyright notice below; the MIT permission notice and disclaimer quoted
+above for Trio apply to each of them in the same terms:
+
+- packages/devices/src/dana: DanaKit, Copyright (c) 2021 Randall Knutson
+- packages/devices/src/medtrum: MedtrumKit, Copyright (c) 2024 J. Bunt
+- packages/devices/src/omnipod: OmnipodKit, Copyright (c) 2022 LoopKit Authors
+- packages/devices/src/rileylink, packages/devices/src/omnipod/eros:
+  RileyLinkKit, Copyright (c) 2015 Pete Schwamb; OmnipodKit (as above)
+- packages/devices/src/libre3: RoundWhiteDiscKit, Copyright (c) 2026
+  RoundWhiteDiscKit contributors; LibreLoop, Copyright (c) 2026 loopkitdev
+- packages/devices/src/syai: SyaiKit, Copyright (c) 2026 Nightscout Foundation
+
+Device artwork (apps/mobile/src/features/devices/images) is either an original
+drawing made for Buddy (the SVG sources are in images/src/) or copied from the
+following MIT-licensed device kits as embedded in Trio. Each kit is distributed
+under the MIT License; the copyright notice and permission notice of the Trio
+license above apply to the copies in the same way.
+
+- omnipod.png, omnipod-dash.png: OmnipodKit, Copyright (c) 2022 LoopKit Authors
+- dexcom-g5.png, dexcom-g6.png: CGMBLEKit, Copyright (c) 2015 Nathan Racklyeft
+- dexcom-g7.png: G7SensorKit, Copyright (c) 2022 LoopKit Authors
+- rileylink.png: RileyLinkKit, Copyright (c) 2015 Pete Schwamb
+- syai.png: SyaiKit, Copyright (c) 2026 Nightscout Foundation
+- dana.png: DanaKit, Copyright (c) 2021 Randall Knutson
+- medtrum-nano.png: MedtrumKit, Copyright (c) 2024 J. Bunt
+- pump-simulator.png, cgm-simulator.png: LoopKit (MockKitUI), Copyright (c) 2015
+  Nathan Racklyeft, Copyright (c) 2016 LoopKit Authors
+
+Original Buddy drawings: minimed, insight, eversense, accu-chek, libre, libre-3,
+dexcom-share, xdrip, nightscout. They show generic form factors only. Artwork
+from MinimedKit, EversenseKit, AccuChekKit and InsightKit (no licence) is not
+used, and the Nightscout owl logo is not shipped.

@@ -9,6 +9,7 @@
     "@buddy/core": "workspace:*",
     "@buddy/simulator": "workspace:*",
     "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.0.1",
     "@noble/hashes": "^2.4.0"
   },
   "type": "module"

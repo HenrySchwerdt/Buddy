@@ -45,7 +45,6 @@ export const MEDTRUM_NANO_META: DeviceMeta = {
   description: 'Medtrum TouchCare Nano patch pump over Bluetooth (port of MedtrumKit). Experimental: verify on hardware, never worn, first.',
   transport: 'ble',
   maturity: 'experimental',
-  requiresHardwareCheck: true,
 };
 
 export type ExpiryMode = 'default' | 'extended';

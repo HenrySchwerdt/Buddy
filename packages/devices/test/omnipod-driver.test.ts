@@ -42,7 +42,7 @@ describe('Omnipod DASH PUMP_CONTRACT (simulated pod)', () => {
 
 describe('Omnipod DASH plugin', () => {
   it('has the expected metadata and refuses to build without BLE or secure storage', () => {
-    expect(omnipodDashPump.meta).toMatchObject({ id: 'omnipod-dash', name: 'Omnipod DASH', manufacturer: 'Insulet', transport: 'ble', maturity: 'experimental', requiresHardwareCheck: true });
+    expect(omnipodDashPump.meta).toMatchObject({ id: 'omnipod-dash', name: 'Omnipod DASH', manufacturer: 'Insulet', transport: 'ble', maturity: 'experimental' });
     const base = { clock: { now: () => 0 }, log: silentLogger, fetch: globalThis.fetch };
     expect(() => omnipodDashPump.create(omnipodDashPump.defaultSettings, base)).toThrow(/ble/i);
     expect(() => omnipodDashPump.create(omnipodDashPump.defaultSettings, { ...base, ble: createFakeBle().transport })).toThrow(/secrets/i);

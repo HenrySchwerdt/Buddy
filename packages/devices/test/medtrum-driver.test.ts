@@ -120,7 +120,6 @@ describe('Medtrum Nano plugin', () => {
       name: 'Medtrum Nano',
       transport: 'ble',
       maturity: 'experimental',
-      requiresHardwareCheck: true,
     });
     const base = { clock: { now: () => 0 }, log: silentLogger, fetch: globalThis.fetch };
     expect(() => medtrumNanoPump.create(medtrumNanoPump.defaultSettings, base)).toThrow(/ble/i);

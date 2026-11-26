@@ -95,7 +95,7 @@ describe('Dana contract drop check really drops mid-bolus', () => {
 
 describe('Dana plugin', () => {
   it('has the requested meta', () => {
-    expect(danaPump.meta).toMatchObject({ id: 'dana-i', name: 'Dana-i / Dana RS', transport: 'ble', maturity: 'experimental', requiresHardwareCheck: true });
+    expect(danaPump.meta).toMatchObject({ id: 'dana-i', name: 'Dana-i / Dana RS', transport: 'ble', maturity: 'experimental' });
   });
 
   it('create() needs BLE and a valid pump name', () => {

@@ -7,23 +7,17 @@ import type { CatalogEntry } from './catalog';
 import { DanaSetup } from './dana-setup';
 import { activateDevice, errorText, useDeviceValues } from './device-actions';
 import { DeviceIcon } from './device-icon';
-import { HardwareCheck } from './hardware-check';
 import { BENCH_NOTE, MedtrumPatchFlow } from './medtrum-patch-flow';
 import { OmnipodErosSetup } from './omnipod-eros-setup';
 import { OmnipodPodFlow } from './omnipod-pod-flow';
 import { PluginForm, TextFieldRow } from './plugin-form';
 import { TextRow } from './setup-rows';
 
-/**
- * Pump setup (Trio `PumpSetupView` → driver onboarding). Experimental drivers end with the
- * hardware check; it can be postponed, closed loop stays blocked until it is completed.
- */
+/** Pump setup (Trio `PumpSetupView` → driver onboarding). */
 export function PumpSetup({ entry, onFinished }: { entry: CatalogEntry; onFinished: () => void }) {
   const plugin = pumps.get(entry.pluginIds[0] ?? '');
-  const [connected, setConnected] = useState(false);
   if (!plugin) return <T secondary>{entry.name} is not available in this build.</T>;
-  if (connected && plugin.meta.requiresHardwareCheck) return <HardwareCheckStep pumpId={plugin.meta.id} onFinished={onFinished} />;
-  const done = () => (plugin.meta.requiresHardwareCheck ? setConnected(true) : onFinished());
+  const done = onFinished;
   switch (plugin.meta.id) {
     case 'dana-i':
       return <DanaSetup plugin={plugin} entryId={entry.id} onConnected={done} />;
@@ -38,15 +32,6 @@ export function PumpSetup({ entry, onFinished }: { entry: CatalogEntry; onFinish
   }
 }
 
-function HardwareCheckStep({ pumpId, onFinished }: { pumpId: string; onFinished: () => void }) {
-  const c = useTrioColors();
-  return (
-    <>
-      <HardwareCheck pumpId={pumpId} onDone={onFinished} />
-      <PrimaryButton label="Not Now" color={c.fill} onPress={onFinished} />
-    </>
-  );
-}
 
 /** Simulators (MockKit) need no onboarding: selecting them completes setup. */
 function InstantSetup({ plugin, entry, onConnected }: { plugin: PumpPlugin; entry: CatalogEntry; onConnected: () => void }) {

@@ -39,11 +39,6 @@ export interface DeviceMeta {
   readonly transport: Transport;
   /** Experimental drivers are only offered in developer mode. */
   readonly maturity: 'stable' | 'experimental' | 'simulator';
-  /**
-   * Pump drivers that have never been verified on hardware set this; closed loop stays
-   * unavailable for them until the user completed the in-app hardware check (pump not worn).
-   */
-  readonly requiresHardwareCheck?: boolean;
   /** Read-only "pumps" (shadow mode) never accept commands; the loop stays open. */
   readonly readOnly?: boolean;
 }

@@ -25,7 +25,6 @@ export const DANA_META: DeviceMeta = {
     'Experimental Bluetooth driver for the Sooil Dana-i (BLE5) and Dana RS (v3), ported from DanaKit. Never verified on hardware by Buddy: test with a pump that is not worn before any use.',
   transport: 'ble',
   maturity: 'experimental',
-  requiresHardwareCheck: true,
 };
 
 const SETTINGS: SettingsSection[] = [

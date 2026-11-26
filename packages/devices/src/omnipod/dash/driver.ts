@@ -44,7 +44,6 @@ export const OMNIPOD_DASH_META: DeviceMeta = {
   description: 'Omnipod DASH pod over Bluetooth (port of OmnipodKit). Experimental, bench only: verify with water, never attached to a body.',
   transport: 'ble',
   maturity: 'experimental',
-  requiresHardwareCheck: true,
 };
 
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });

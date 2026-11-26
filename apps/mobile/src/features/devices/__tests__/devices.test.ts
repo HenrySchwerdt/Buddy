@@ -1,10 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import type { InsulinDose } from '@buddy/core';
 import { BUILT_IN_CGMS, BUILT_IN_PUMPS } from '@buddy/devices';
 import { catalogSections, CGM_CATALOG, DEVICE_IMAGE_KEYS, entryForPlugin, isSupported, PUMP_CATALOG, setupErrors } from '../catalog';
-import { bolusMatches, deliveredBolusSince, linkDropBolus, testTempBasalRate } from '../hardware-check-logic';
 
 describe('device catalog', () => {
   test('pump sections follow Trio order with the simulator last', () => {
@@ -87,30 +85,3 @@ describe('device artwork', () => {
   });
 });
 
-describe('hardware check logic', () => {
-  test('test temp basal is half the scheduled rate on the increment grid, capped by max basal', () => {
-    expect(testTempBasalRate(1, 5, 0.05)).toBe(0.5);
-    expect(testTempBasalRate(0.05, 5, 0.05)).toBe(0.05);
-    expect(testTempBasalRate(4, 1, 0.1)).toBe(1);
-  });
-
-  test('link-drop bolus stays within max bolus', () => {
-    expect(linkDropBolus(10, 0.05)).toBe(0.5);
-    expect(linkDropBolus(0.3, 0.05)).toBe(0.3);
-  });
-
-  test('delivered bolus counts boluses and SMBs since a time only', () => {
-    const history: InsulinDose[] = [
-      { kind: 'bolus', date: 1_000, units: 1, id: 'a' },
-      { kind: 'bolus', date: 5_000, units: 0.1, id: 'b' },
-      { kind: 'smb', date: 6_000, units: 0.2, id: 'c' },
-      { kind: 'tempBasal', date: 6_000, rate: 1, durationMin: 30, id: 'd' },
-    ];
-    expect(deliveredBolusSince(history, 2_000)).toBe(0.3);
-  });
-
-  test('bolus comparison tolerates half an increment', () => {
-    expect(bolusMatches(0.1, 0.1, 0.05)).toBe(true);
-    expect(bolusMatches(0.15, 0.1, 0.05)).toBe(false);
-  });
-});

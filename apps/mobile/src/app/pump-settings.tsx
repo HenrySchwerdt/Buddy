@@ -8,7 +8,6 @@ import { currentPump, now, restartRuntime, setPumpSuspended, store, useRuntime }
 import { useSettings } from '@/runtime/settings-store';
 import { CapsuleButton, NavRow, PrimaryButton, Row, Section, SheetScreen, T, useTrioColors, ValueRow } from '@/trio';
 import { deleteDevice, deviceErrors, errorText, saveDeviceValues, useActiveDevice, useDeviceValues } from '@/features/devices/device-actions';
-import { HardwareCheck } from '@/features/devices/hardware-check';
 import { MedtrumPatchFlow } from '@/features/devices/medtrum-patch-flow';
 import { OmnipodErosPodFlow } from '@/features/devices/omnipod-eros-pod-flow';
 import { OmnipodPodFlow } from '@/features/devices/omnipod-pod-flow';
@@ -17,7 +16,7 @@ import { upTo3 } from '@/features/history/rows';
 import { PumpStatusCard, type PumpLife } from '@/features/devices/pump-status-card';
 import { TempBasalEntry } from '@/features/devices/temp-basal-entry';
 
-type Page = 'main' | 'device' | 'patch' | 'hardware' | 'tempBasal';
+type Page = 'main' | 'device' | 'patch' | 'tempBasal';
 
 const DAY = 24 * HOUR;
 const PATCH_LIFE = 72 * HOUR;
@@ -46,12 +45,6 @@ export default function PumpSettings() {
       return (
         <SheetScreen title={plugin.meta.id === 'medtrum-nano' ? 'Patch' : 'Pod'} leading={back}>
           {plugin.meta.id === 'medtrum-nano' ? <MedtrumPatchFlow /> : plugin.meta.id === 'omnipod-eros' ? <OmnipodErosPodFlow /> : <OmnipodPodFlow />}
-        </SheetScreen>
-      );
-    case 'hardware':
-      return (
-        <SheetScreen title="Hardware Check" leading={back}>
-          <HardwareCheck pumpId={plugin.meta.id} onDone={() => setPage('main')} />
         </SheetScreen>
       );
     case 'tempBasal':
@@ -150,7 +143,6 @@ function MainPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
       },
     ]);
 
-  const hwDone = s.hardwareChecks[plugin.meta.id];
   return (
     <SheetScreen
       title=""
@@ -208,7 +200,6 @@ function MainPage({ onNavigate }: { onNavigate: (p: Page) => void }) {
         {plugin.meta.maturity !== 'simulator' ? <NavRow label="Pump Settings" onPress={() => onNavigate('device')} /> : null}
         {plugin.meta.id === 'medtrum-nano' ? <NavRow label="Patch" onPress={() => onNavigate('patch')} /> : null}
         {plugin.meta.id === 'omnipod-dash' || plugin.meta.id === 'omnipod-eros' ? <NavRow label="Pod" onPress={() => onNavigate('patch')} /> : null}
-        {plugin.meta.requiresHardwareCheck ? <NavRow label="Hardware Check" value={hwDone ? 'Completed' : 'Required'} onPress={() => onNavigate('hardware')} /> : null}
         <ValueRow label="Current Basal Rate" value={`${upTo3(temp ? temp.rate : scheduled)} U/hr`} />
         <ValueRow label="Last Sync" value={pump ? new Date(pump.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'} />
       </Section>

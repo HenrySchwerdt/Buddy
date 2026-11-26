@@ -52,7 +52,6 @@ describe('Omnipod Eros plugin', () => {
       description: expect.stringMatching(/bench only.*water/i),
       transport: 'ble',
       maturity: 'experimental',
-      requiresHardwareCheck: true,
     });
     expect(omnipodErosPump.settings.flatMap((s) => s.fields).find((f) => f.key === 'rileyLinkId')).toMatchObject({ kind: 'text' });
     expect(omnipodErosPump.defaultSettings.rileyLinkId).toBe('');

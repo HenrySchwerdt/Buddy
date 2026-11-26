@@ -48,8 +48,6 @@ export interface AppSettings {
   readonly nightscoutUpload: boolean;
   /** Upload high-water marks, so restarts do not re-upload. */
   readonly nightscoutState: Readonly<Record<string, number>>;
-  /** Completed hardware checks by pump plugin id (epoch ms). */
-  readonly hardwareChecks: Readonly<Record<string, number>>;
 }
 
 interface Actions {
@@ -84,7 +82,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   nightscoutUrl: '',
   nightscoutUpload: false,
   nightscoutState: {},
-  hardwareChecks: {},
 };
 
 export const useSettings = create<AppSettings & Actions>()(

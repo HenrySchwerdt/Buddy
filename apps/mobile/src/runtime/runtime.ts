@@ -97,7 +97,7 @@ function closedLoopBlockReason(): string | null {
   const s = useSettings.getState();
   const pumpMeta = s.pumpId ? pumps.get(s.pumpId)?.meta : undefined;
   const cgmMeta = s.cgmId ? cgms.get(s.cgmId)?.meta : undefined;
-  return gateClosedLoop(pumpMeta, cgmMeta, s.hardwareChecks);
+  return gateClosedLoop(pumpMeta, cgmMeta);
 }
 
 /** Builds the configured devices. An empty id means "no device" (Trio's "Add pump" state). */

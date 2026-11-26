@@ -2,8 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Platform, View } from 'react-native';
 import { pairLibreSensor, restartRuntime, useRuntime } from '@/runtime/runtime';
-import { useSettings } from '@/runtime/settings-store';
-import { CapsuleButton, PrimaryButton, Row, Section, SheetScreen, T, ToggleRow, useTrioColors } from '@/trio';
+import { CapsuleButton, PrimaryButton, Row, Section, SheetScreen, T, useTrioColors } from '@/trio';
 import { deleteDevice, deviceErrors, errorText, saveDeviceValues, useActiveDevice, useDeviceValues } from '@/features/devices/device-actions';
 import { PluginForm } from '@/features/devices/plugin-form';
 
@@ -107,7 +106,6 @@ export default function CgmSettings() {
         </Section>
       ) : null}
 
-      {plugin.meta.transport === 'network' ? <CloudLoopAcknowledgement id={id} name={entry.name} /> : null}
 
       <PluginForm
         sections={plugin.settings}
@@ -144,35 +142,3 @@ export default function CgmSettings() {
   );
 }
 
-/**
- * Cloud CGMs (LibreLinkUp, Dexcom Share, Nightscout) deliver readings minutes late. Closed loop with
- * one stays off until the user acknowledges that here (the gate checks `hardwareChecks[id]`).
- */
-function CloudLoopAcknowledgement({ id, name }: { id: string; name: string }) {
-  const acknowledged = useSettings((s) => Boolean(s.hardwareChecks[id]));
-  const update = useSettings((s) => s.update);
-  const setAcknowledged = (on: boolean) => {
-    const checks = { ...useSettings.getState().hardwareChecks };
-    if (on) checks[id] = Date.now();
-    else delete checks[id];
-    update({ hardwareChecks: checks });
-    void restartRuntime();
-  };
-  return (
-    <Section
-      header="Closed Loop"
-      footer={`${name} reads glucose from the cloud, typically several minutes behind the sensor. Readings older than your maximum glucose age stop all dosing.`}>
-      <ToggleRow
-        label="Allow closed loop with this CGM"
-        value={acknowledged}
-        onChange={(on) => {
-          if (!on) return setAcknowledged(false);
-          Alert.alert('Delayed glucose', `Closed loop will dose on ${name} readings that arrive with a delay. Use this only for bench testing.`, [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'I understand', onPress: () => setAcknowledged(true) },
-          ]);
-        }}
-      />
-    </Section>
-  );
-}

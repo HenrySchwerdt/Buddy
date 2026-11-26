@@ -10,10 +10,15 @@ const MAX_AGE_MS = 24 * 60 * 60_000;
 export class Libre3ReadingBuffer {
   private items: readonly GlucoseReading[] = [];
 
+  /** `onNew` fires after a reading with a date not held yet was added (the CGM heartbeat). */
+  constructor(private readonly onNew?: () => void) {}
+
   add(reading: GlucoseReading): void {
+    const isNew = !this.items.some((r) => r.date === reading.date);
     const merged = [...this.items.filter((r) => r.date !== reading.date), reading].sort((a, b) => a.date - b.date);
     const newest = merged[merged.length - 1]!.date;
     this.items = merged.filter((r) => r.date >= newest - MAX_AGE_MS);
+    if (isNew) this.onNew?.();
   }
 
   since(since: number): GlucoseReading[] {

@@ -6,7 +6,7 @@
  *
  * Independent of Abbott and not endorsed by Abbott. FreeStyle Libre is a trademark of Abbott.
  */
-import { defineCgm, type CgmSource, type DeviceContext, type DeviceMeta } from '@buddy/core';
+import { defineCgm, HeartbeatEmitter, type CgmSource, type DeviceContext, type DeviceMeta } from '@buddy/core';
 import { LIBRE3_ID } from './constants';
 import { Libre3Engine, type Libre3Phase } from './engine';
 import { installAppIdentities } from './identity';
@@ -48,6 +48,8 @@ export interface Libre3Status {
   readonly endedNormally: boolean;
   readonly attention: SensorAttention;
   readonly lastReadingAt: number | null;
+  /** The newest connection error while the sensor is not streaming (a pending connect is armed meanwhile), or null. */
+  readonly connectionError: string | null;
   /** Why the latest reading was withheld (warmup, data quality, not actionable ...), if it was. */
   readonly lastIssue: string | null;
 }
@@ -77,7 +79,8 @@ export function createLibre3Source(settings: Libre3DirectSettings, ctx: DeviceCo
   const ble = require(ctx.ble, 'Bluetooth (ctx.ble)');
   const secrets = require(ctx.secrets, 'a secret store (ctx.secrets)');
   const timing: Libre3Timing = { ...DEFAULT_TIMING, ...options.timing };
-  const buffer = new Libre3ReadingBuffer();
+  const heartbeat = new HeartbeatEmitter();
+  const buffer = new Libre3ReadingBuffer(heartbeat.emit);
   let runtime: { holder: SensorStateHolder; pipeline: ReadingPipeline; engine: Libre3Engine } | null = null;
 
   const build = async () => {
@@ -96,7 +99,7 @@ export function createLibre3Source(settings: Libre3DirectSettings, ctx: DeviceCo
       settings: { minuteByMinute: settings.minuteByMinute === true, useNonActionable: settings.useNonActionable === true },
       onSensorEnded: () => engineRef?.sensorEnded(),
     });
-    const engine = new Libre3Engine({ ble, secrets, clock: ctx.clock, log: ctx.log, holder, pipeline, timing, random: options.random ?? secureRandom, signingKeys: options.signingKeys });
+    const engine = new Libre3Engine({ ble, secrets, clock: ctx.clock, log: ctx.log, holder, pipeline, timing, random: options.random ?? secureRandom, signingKeys: options.signingKeys, onLinkEnded: heartbeat.emit });
     engineRef = engine;
     return { holder, pipeline, engine };
   };
@@ -111,6 +114,7 @@ export function createLibre3Source(settings: Libre3DirectSettings, ctx: DeviceCo
       await runtime?.engine.stop();
     },
     readings: async (since) => buffer.since(since),
+    onHeartbeat: heartbeat.on,
     sensorInfo() {
       const sensor = runtime?.holder.current ?? null;
       const telemetry = runtime?.pipeline.telemetry ?? null;
@@ -130,6 +134,7 @@ export function createLibre3Source(settings: Libre3DirectSettings, ctx: DeviceCo
       return {
         phase: runtime?.engine.state.phase ?? 'idle',
         needsRepair: runtime?.engine.state.needsRepair ?? false,
+        connectionError: runtime?.engine.state.error ?? null,
         serialNumber: sensor?.serialNumber ?? null,
         lifecycle: lifecycle?.phase ?? null,
         wearRemainingMinutes: lifecycle?.remainingWearMinutes ?? null,

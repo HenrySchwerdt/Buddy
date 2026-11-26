@@ -52,6 +52,13 @@ export interface AppSettings {
   readonly nightscoutDownload: boolean;
   /** Download high-water marks (newest `created_at` per collection). */
   readonly nightscoutDownloadState: Readonly<Record<string, number>>;
+  /**
+   * Trio's heartbeat transmitter for CGMs that are not Bluetooth themselves (Nightscout, LibreLinkUp, xDrip app
+   * group): the BLE device whose connects, notifications and disconnects wake the app to loop. Empty = none.
+   */
+  readonly heartbeatDeviceId: string;
+  /** Display name of the chosen device (the id alone is an opaque UUID). */
+  readonly heartbeatDeviceName: string;
   /** Upload CGM sensor session starts as `Sensor Start` treatments. */
   readonly nightscoutUploadSensors: boolean;
   /** Apple Health (iOS) or Health Connect (Android): write glucose, carbs and insulin. Trio `useAppleHealth`. */
@@ -112,6 +119,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   nightscoutState: {},
   nightscoutDownload: false,
   nightscoutDownloadState: {},
+  heartbeatDeviceId: '',
+  heartbeatDeviceName: '',
   nightscoutUploadSensors: false,
   useHealth: false,
   useCalendar: false,

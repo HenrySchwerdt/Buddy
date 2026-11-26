@@ -9,7 +9,8 @@ Local Expo module plus its config plugin (`plugins/with-buddy-native.js`) and th
 
 | Feature | iOS | Android |
 | --- | --- | --- |
-| Keep looping in the background | Bluetooth background mode + CoreBluetooth state restoration (`background-ble.ts`), periodic background task | Foreground service (`BuddyForegroundService`, a `HeadlessJsTaskService`) with an ongoing notification, periodic background task |
+| Keep looping in the background | Bluetooth heartbeats: scans and pending connects that CoreBluetooth keeps alive (`bluetooth-central`, state restoration in `background-ble.ts`) wake the app, which loops (`heartbeat-loop.ts`); `beginBackgroundTask` keeps it running until the cycle is done; periodic background task as a safety net | Foreground service (`BuddyForegroundService`, a `HeadlessJsTaskService`) with an ongoing notification, periodic background task |
+| Finish work before suspension | `beginBackgroundTask(name)` / `endBackgroundTask(id)` wrap `UIApplication.beginBackgroundTask` (the expiration handler ends the task natively) | no-ops returning 0 (the foreground service keeps the app alive) |
 | Glucose / IOB / COB on the lock screen | ActivityKit Live Activity + Dynamic Island (`targets/live-activity`) | The same ongoing notification |
 | Shortcuts | App Intents (`plugins/buddy-native/ios/BuddyAppIntents.swift`) -> `buddy://` deep links | Static + dynamic app shortcuts -> `buddy://` deep links |
 
@@ -24,9 +25,13 @@ insulin delivery. The only action without a confirmation is "List State" (read-o
 ## Limits (be honest with users)
 
 iOS
-- Buddy cannot run a 5-minute timer in the background. It stays alive only while CoreBluetooth has work (a connected
-  CGM/pump that notifies) and iOS did not terminate it. After a memory termination iOS relaunches it for Bluetooth
-  events thanks to state restoration; after a force quit (swipe away) it does not.
+- Buddy cannot run a 5-minute timer in the background. It is woken by Bluetooth: the CGM drivers keep a
+  service-filtered scan or a pending connect armed (no timeout, no JS timer), and a reading, connect, notification or
+  disconnect wakes the app for a short time, in which it loops (see `apps/mobile/README.md`, "Background operation").
+  Each wake and each heartbeat-triggered cycle runs inside a `beginBackgroundTask`; iOS grants roughly 30 s in total
+  and ends the task itself (the module's expiration handler does too). After a memory termination iOS relaunches
+  Buddy for pending Bluetooth events (state restoration); after a force quit (swipe away) it does not, exactly like
+  Trio. Non-Bluetooth CGMs need a heartbeat transmitter (CGM settings) or a pump that provides one.
 - Background tasks (`expo-background-task`) are scheduled by iOS: roughly every 15 minutes at best, often much less,
   none in Low Power Mode. They are a safety net, not a scheduler. Closed loop with a Bluetooth CGM works because
   of the Bluetooth wake-ups; with a polled source (Nightscout, LibreLinkUp, xDrip app group) Buddy only updates when
@@ -58,3 +63,8 @@ Android
 
 See the report of the change that added this module; native code was compiled for iOS (simulator) and Android,
 but the Live Activity, App Intents, foreground service and background task were not exercised on a device.
+The same goes for the Bluetooth heartbeat path and `beginBackgroundTask`: the driver logic is covered by tests
+against a fake BLE central (no timer between a disconnect and the next armed scan or pending connect, early
+advertisements ignored until the allowed time, heartbeat -> loop policy), the Swift module compiles for the iOS
+simulator, but no real sensor, pump or iPhone was involved, so how long iOS really keeps the app running per wake,
+and whether it relaunches the app for a given pending connect, is reasoned from Apple's documentation, not observed.

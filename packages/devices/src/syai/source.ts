@@ -6,7 +6,7 @@
  * Sensor activation is not implemented: the sensor must already be activated and bound to the
  * user's Syai account (for example with the official app). This source takes over that sensor.
  */
-import type { CgmSource, DeviceContext, DeviceMeta, GlucoseReading } from '@buddy/core';
+import { HeartbeatEmitter, type CgmSource, type DeviceContext, type DeviceMeta, type GlucoseReading } from '@buddy/core';
 import { errorOf, ReadingBuffer, Sleeper } from '../dexcom-g6/ble-common';
 import { systemRandom, type RandomSource } from './ble-auth';
 import { SyaiCloudClient, makeInstallDeviceId, type ClientIdentity, type SyaiAccount } from './cloud-client';
@@ -47,7 +47,11 @@ export function normalizeSensorMac(raw: string): string | null {
 export interface SyaiRetryTiming {
   /** No frame for this long on a live link forces a reconnect. */
   readonly staleLinkMs: number;
-  /** After a dropped link (strong "it is right here" signal): retry near-continuously. */
+  /**
+   * A link that dropped after living at least this long is reconnected at once (a pending connect, no timer).
+   * One that dropped sooner (the sensor accepts and kicks us out) waits out the rest of it first.
+   * Also the wait after a connect that failed.
+   */
   readonly droppedRetryMs: number;
   readonly noSensorRetryMs: number;
   readonly authRetryMs: number;
@@ -98,6 +102,7 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
   const timeouts: SessionTimeouts = { ...DEFAULT_SESSION_TIMEOUTS, ...options.sessionTimeouts };
   const random = options.random ?? systemRandom;
   const buffer = new ReadingBuffer();
+  const heartbeat = new HeartbeatEmitter();
   const sleeper = new Sleeper();
 
   let manager: SyaiManager | null = null;
@@ -108,6 +113,8 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
   let message: string | null = null;
   let persistChain: Promise<void> = Promise.resolve();
   let reprovision = false;
+  /** Peripheral of a pending (timeout-free) connect in flight, so `stop()` can cancel it. */
+  let pendingId: string | null = null;
   let lastReplacementCheck = 0;
 
   const persist = (key: string, value: string) => {
@@ -187,18 +194,28 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
   }
 
   /** Runs one authenticated link until it closes or goes silent; returns how the caller should wait. */
-  async function runSession(mgr: SyaiManager, record: SyaiSensorRecord): Promise<void> {
+  async function runSession(mgr: SyaiManager, record: SyaiSensorRecord, pending: boolean): Promise<void> {
     const keyGroup = keyGroupBytes(record);
     if (!keyGroup) {
       reprovision = true;
       return;
     }
-    const session = await SyaiSession.connect(
-      { ble: ble!, clock: ctx.clock, log: ctx.log, random },
-      { mac: record.deviceInfo.mac, keyGroup, peripheralId: record.peripheralId },
-      { onFrame: (f) => mgr.handleFrame(f), onBatch: (b) => mgr.handleBatch(b) },
-      timeouts,
-    );
+    pendingId = pending ? record.peripheralId : null;
+    let session: SyaiSession;
+    try {
+      session = await SyaiSession.connect(
+        { ble: ble!, clock: ctx.clock, log: ctx.log, random },
+        { mac: record.deviceInfo.mac, keyGroup, peripheralId: record.peripheralId, pending },
+        { onFrame: (f) => mgr.handleFrame(f), onBatch: (b) => mgr.handleBatch(b) },
+        timeouts,
+      );
+    } finally {
+      pendingId = null;
+    }
+    if (!running) {
+      await session.disconnect();
+      return;
+    }
     activeSession = session;
     message = null;
     mgr.setPeripheralId(session.peripheralId);
@@ -226,6 +243,7 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
       watchdog.cancelAll();
       activeSession = null;
       await session.disconnect();
+      heartbeat.emit(); // the link ended: the sensor woke the app
     }
   }
 
@@ -234,6 +252,8 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
   }
 
   async function runLoop(mgr: SyaiManager): Promise<void> {
+    /** The previous link dropped after living long enough: reconnect through a pending connect, with no wait. */
+    let reconnect = false;
     while (running) {
       try {
         const record = await ensureSensor(mgr);
@@ -247,9 +267,14 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
           await backoff(Math.min(timing.replacementCheckMs, timing.cloudRetryMs));
           continue;
         }
-        await runSession(mgr, record);
-        await backoff(timing.droppedRetryMs);
+        const startedAt = ctx.clock.now();
+        await runSession(mgr, record, reconnect);
+        const lived = ctx.clock.now() - startedAt;
+        reconnect = true;
+        // A link that held for a while is simply re-armed. One that died at once would spin: wait out the rest.
+        if (lived < timing.droppedRetryMs) await backoff(timing.droppedRetryMs - lived);
       } catch (e) {
+        reconnect = false;
         if (!running) return;
         const err = errorOf(e);
         const kind = err instanceof SyaiFailure ? err.kind : 'network';
@@ -257,6 +282,12 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
         message = err.message;
         if (kind === 'unsupportedFirmware') return; // never retried: the sensor stays untouched
         if (kind === 'authFailed') reprovision = true; // keys may have rotated: fetch the record again
+        if (kind === 'noSensorFound' && mgr.state.sensor?.peripheralId) {
+          // The sensor is known but not in range: wait for it with a pending connect (no timeout, no timer) instead of
+          // scanning on a timer, so a suspended iOS app is woken when the sensor is back.
+          reconnect = true;
+          continue;
+        }
         const wait: Record<string, number> = {
           droppedAfterConnect: timing.droppedRetryMs,
           noSensorFound: timing.noSensorRetryMs,
@@ -278,7 +309,9 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
           clock: ctx.clock,
           log: ctx.log,
           persist: (s) => persist(SYAI_STATE_KEY, serializeSyaiState(s)),
-          onReading: (syncId, reading: GlucoseReading) => void buffer.add(syncId, reading),
+          onReading: (syncId, reading: GlucoseReading) => {
+            if (buffer.add(syncId, reading)) heartbeat.emit();
+          },
           requestBackfill: (start, count) => (activeSession ? activeSession.requestHistorical(start, count) : Promise.reject(new Error('no live session'))),
         });
       }
@@ -289,6 +322,7 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
     async stop() {
       running = false;
       sleeper.cancelAll();
+      if (pendingId) ble.cancelConnect?.(pendingId);
       await activeSession?.disconnect();
       await loop;
       await persistChain;
@@ -296,6 +330,7 @@ export function createSyaiSource(settings: SyaiSettings, ctx: DeviceContext, opt
     async readings(since) {
       return buffer.since(since);
     },
+    onHeartbeat: heartbeat.on,
     status() {
       const s = manager?.state ?? EMPTY_SYAI_STATE;
       return {

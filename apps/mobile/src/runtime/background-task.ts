@@ -2,6 +2,7 @@ import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { MINUTE } from '@buddy/core';
 import { useSettings } from './settings-store';
+import { withBackgroundTask } from './background-tasks';
 
 /**
  * Periodic background wake-up (iOS BGTaskScheduler processing task, Android WorkManager). The system decides
@@ -29,19 +30,26 @@ export function whenSettingsHydrated(): Promise<void> {
   });
 }
 
-/** What a background wake does: start the runtime if needed, run one loop cycle if due. Returns what happened. */
-export async function backgroundTick(): Promise<'skipped' | 'idle' | 'looped'> {
-  await whenSettingsHydrated();
-  if (!useSettings.getState().onboarded) return 'skipped';
-  // Imported lazily: runtime.ts imports this module's siblings, and a headless launch must not pay for it before it is needed.
-  const { startRuntime, runLoop, store, now } = await import('./runtime');
-  await startRuntime();
-  const snap = store.snapshot();
-  const lastLoop = snap.loopRuns.at(-1)?.date ?? 0;
-  const latestGlucose = snap.glucose.at(-1)?.date ?? 0;
-  if (now() - lastLoop < TICK_MIN_AGE_MS && latestGlucose <= lastLoop) return 'idle';
-  await runLoop();
-  return 'looped';
+/**
+ * What a background wake does: start the runtime if needed, run one loop cycle if due. Returns what happened.
+ * The whole tick runs inside a UIApplication background task (ended in `finally`), so the cycle and its uploads
+ * can finish even if the system's own task window is about to close.
+ */
+export function backgroundTick(): Promise<'skipped' | 'idle' | 'looped'> {
+  return withBackgroundTask('buddy-background-tick', async () => {
+    await whenSettingsHydrated();
+    if (!useSettings.getState().onboarded) return 'skipped';
+    // Imported lazily: runtime.ts imports this module's siblings, and a headless launch must not pay for it before it is needed.
+    const { startRuntime, runLoop, afterLoopSettled, store, now } = await import('./runtime');
+    await startRuntime();
+    const snap = store.snapshot();
+    const lastLoop = snap.loopRuns.at(-1)?.date ?? 0;
+    const latestGlucose = snap.glucose.at(-1)?.date ?? 0;
+    if (now() - lastLoop < TICK_MIN_AGE_MS && latestGlucose <= lastLoop) return 'idle';
+    await runLoop();
+    await afterLoopSettled();
+    return 'looped';
+  });
 }
 
 TaskManager.defineTask(BACKGROUND_LOOP_TASK, async () => {

@@ -7,7 +7,7 @@
  * Dexcom Share plugin), CGM events, UI, and the sensor command queue (start/stop/calibrate/
  * reset transmitter) — Buddy is a read-only consumer of the CGM.
  */
-import { defineCgm, type Bytes, type CgmSource, type DeviceContext, type DeviceMeta, type GlucoseReading } from '@buddy/core';
+import { defineCgm, HeartbeatEmitter, type Bytes, type CgmSource, type DeviceContext, type DeviceMeta, type GlucoseReading } from '@buddy/core';
 import { normalizeTransmitterId } from './auth';
 import { errorOf, ReadingBuffer } from './ble-common';
 import { DEFAULT_SENSOR_LIFE_DAYS, g6Trend, hasReliableGlucose, calibrationStateName, type G6Glucose } from './glucose';
@@ -80,6 +80,7 @@ export function createDexcomG6Source(settings: DexcomG6Settings, ctx: DeviceCont
   const transmitterId = normalizeTransmitterId(String(settings.transmitterId ?? ''));
   const passiveModeEnabled = settings.passiveMode !== false;
   const buffer = new ReadingBuffer();
+  const heartbeat = new HeartbeatEmitter();
   const key = g6StateKey(transmitterId);
 
   let state: G6PersistedState = EMPTY_STATE;
@@ -102,7 +103,7 @@ export function createDexcomG6Source(settings: DexcomG6Settings, ctx: DeviceCont
 
   const pushReading = (g: G6Glucose) => {
     const r = toG6Reading(g);
-    if (r) buffer.add(g.syncIdentifier, r);
+    if (r && buffer.add(g.syncIdentifier, r)) heartbeat.emit();
   };
 
   const delegate = {
@@ -150,6 +151,7 @@ export function createDexcomG6Source(settings: DexcomG6Settings, ctx: DeviceCont
           log: ctx.log,
           delegate,
           timing: options.timing,
+          onLinkEnded: heartbeat.emit,
           randomToken: options.randomToken,
         });
       }
@@ -162,6 +164,7 @@ export function createDexcomG6Source(settings: DexcomG6Settings, ctx: DeviceCont
     async readings(since) {
       return buffer.since(since);
     },
+    onHeartbeat: heartbeat.on,
     sensorInfo() {
       // The sensor session starts `sensorStartOffset` seconds after the transmitter was activated.
       if (state.transmitterStartDate === null || state.sensorStartOffset === null || state.sensorStartOffset === NO_ACTIVE_SESSION_START_TIME) return null;

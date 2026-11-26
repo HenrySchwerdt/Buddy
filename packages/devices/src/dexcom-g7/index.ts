@@ -3,7 +3,7 @@
  * loopandlearn/G7SensorKit (MIT, © 2022 LoopKit Authors), of which the files in this
  * folder are TypeScript ports (see each file header).
  */
-import { defineCgm, type CgmSource, type DeviceContext, type DeviceMeta } from '@buddy/core';
+import { defineCgm, HeartbeatEmitter, type CgmSource, type DeviceContext, type DeviceMeta } from '@buddy/core';
 import { errorOf, ReadingBuffer } from '../dexcom-g6/ble-common';
 import { DEXCOM_G7_ID, EMPTY_G7_STATE, G7CgmManager, parseG7State, serializeG7State, type G7State } from './manager';
 import { G7Sensor, type G7Timing } from './sensor';
@@ -47,6 +47,7 @@ export function createDexcomG7Source(settings: DexcomG7Settings, ctx: DeviceCont
   if (!ble) throw new Error('Dexcom G7 needs Bluetooth, but no BLE transport is available on this device');
   const pinnedName = normalizeSensorName(String(settings.sensorName ?? ''));
   const buffer = new ReadingBuffer();
+  const heartbeat = new HeartbeatEmitter();
   let manager: G7CgmManager | null = null;
   let persistChain: Promise<void> = Promise.resolve();
 
@@ -71,8 +72,12 @@ export function createDexcomG7Source(settings: DexcomG7Settings, ctx: DeviceCont
           log: ctx.log,
           persist,
           suspectedSessionEndGraceMs: options.suspectedSessionEndGraceMs,
-          onReadings: (rs) => rs.forEach(({ syncId, reading }) => buffer.add(syncId, reading)),
-          makeSensor: (delegate, sensorID) => new G7Sensor({ sensorID, ble, clock: ctx.clock, log: ctx.log, delegate, timing: options.timing }),
+          onReadings: (rs) => {
+            // `map`, not `some`: every reading must be added.
+            const fresh = rs.map(({ syncId, reading }) => buffer.add(syncId, reading)).some(Boolean);
+            if (fresh) heartbeat.emit();
+          },
+          makeSensor: (delegate, sensorID) => new G7Sensor({ sensorID, ble, clock: ctx.clock, log: ctx.log, delegate, timing: options.timing, onLinkEnded: heartbeat.emit }),
         });
         if (restored) manager.sensor.needsVersionInfo = manager.state.extendedVersion === null;
       } else {
@@ -88,6 +93,7 @@ export function createDexcomG7Source(settings: DexcomG7Settings, ctx: DeviceCont
     async readings(since) {
       return buffer.since(since);
     },
+    onHeartbeat: heartbeat.on,
     sensorInfo() {
       const activatedAt = manager?.state.activatedAt ?? null;
       if (activatedAt === null) return null;

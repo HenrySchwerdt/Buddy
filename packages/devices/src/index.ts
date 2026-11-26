@@ -32,6 +32,8 @@ export * from './minimed';
 export * from './insight';
 export * from './xdrip';
 export * from './testkit';
+export { HeartbeatTransmitter, scanNearbyDevices, type HeartbeatTransmitterOptions, type NearbyBleDevice } from './heartbeat-transmitter';
+export { NotBefore, scanFirst } from './ble-rearm';
 export { demoHub, createDemoHub, type DemoHub } from './demo/hub';
 export { parseNightscoutEntries, normalizeBaseUrl } from './nightscout';
 export { parseShareReadings, parseShareDate } from './dexcom-share';

@@ -6,7 +6,7 @@
  * - `libre-2-direct`: Libre 2 (EU) sensor over BLE after NFC pairing (`pairSensor`).
  * - `libre-transmitter`: Libre 1 / Libre 2 via a MiaoMiao or Bubble bridge.
  */
-import { defineCgm, hex, fromHex, type CgmSensorInfo, type CgmSource, type DeviceContext, type DeviceMeta, type GlucoseReading, type SecretStore } from '@buddy/core';
+import { defineCgm, HeartbeatEmitter, hex, fromHex, type CgmSensorInfo, type CgmSource, type DeviceContext, type DeviceMeta, type GlucoseReading, type SecretStore } from '@buddy/core';
 import { Libre2DirectTransmitter, LIBRE2_NOTIFY, LIBRE2_SERVICE, LIBRE2_WRITE, matchesLibre2Advertisement, nextUnlock, type Libre2Sensor } from './libre2-direct';
 import { LibreErrorDescription, LibreReadingProcessor, type LibreUpdateResult } from './processor';
 import { LibreBleSession, type SessionProtocol } from './session';
@@ -22,10 +22,13 @@ const DELAYED_RECONNECT_MS = 7_000;
 /** In-memory reading buffer shared by both plugins (deduplicated by timestamp). */
 export class ReadingBuffer {
   private readonly byDate = new Map<number, GlucoseReading>();
-  add(readings: readonly GlucoseReading[]): void {
+  /** Returns whether any reading was new (a date not held yet). */
+  add(readings: readonly GlucoseReading[]): boolean {
+    const fresh = readings.some((r) => !this.byDate.has(r.date));
     for (const r of readings) this.byDate.set(r.date, r);
     const newest = Math.max(...this.byDate.keys());
     for (const d of [...this.byDate.keys()]) if (d < newest - MAX_BUFFER_AGE_MS) this.byDate.delete(d);
+    return fresh;
   }
   since(since: number): GlucoseReading[] {
     return [...this.byDate.values()].filter((r) => r.date > since).sort((a, b) => a.date - b.date);
@@ -37,14 +40,17 @@ function requireCapability<T>(value: T | undefined, what: string, id: string): T
   return value;
 }
 
-function report(ctx: DeviceContext, buffer: ReadingBuffer, result: LibreUpdateResult): void {
-  if (result.kind === 'newData') buffer.add(result.readings);
-  else if (result.kind === 'error') ctx.log.warn(`Libre: ${LibreErrorDescription[result.error]}`);
+function report(ctx: DeviceContext, buffer: ReadingBuffer, heartbeat: HeartbeatEmitter, result: LibreUpdateResult): void {
+  if (result.kind === 'newData') {
+    if (buffer.add(result.readings)) heartbeat.emit();
+  } else if (result.kind === 'error') ctx.log.warn(`Libre: ${LibreErrorDescription[result.error]}`);
 }
 
 /** Exposed so tests can wait for queued notifications. */
 export interface LibreCgmSource extends CgmSource {
   idle(): Promise<void>;
+  /** The newest connection error while no link is up (a pending connect is armed meanwhile), or null. */
+  connectionError(): string | null;
 }
 
 // ── Libre 2 direct ────────────────────────────────────────────────────────────
@@ -66,6 +72,7 @@ function libre2Protocol(
   ctx: DeviceContext,
   secrets: SecretStore,
   buffer: ReadingBuffer,
+  heartbeat: HeartbeatEmitter,
   processor: LibreReadingProcessor,
 ): { protocol: SessionProtocol; loadSensor: () => Promise<Libre2Sensor>; sensorInfo: () => CgmSensorInfo | null } {
   const transmitter = new Libre2DirectTransmitter();
@@ -97,7 +104,7 @@ function libre2Protocol(
       if (out.kind !== 'update' || !sensor) return [];
       lastAge = { minutes: out.response.age, at: ctx.clock.now() };
       const result = processor.sensorDidUpdate(out.response, hex(sensor.uid), await calibration.get(), await loadCalibrationMapping(secrets));
-      report(ctx, buffer, result);
+      report(ctx, buffer, heartbeat, result);
       return [];
     },
   };
@@ -117,8 +124,9 @@ export const libre2DirectCgm = defineCgm<Libre2DirectSettings>({
     const ble = requireCapability(ctx.ble, 'Bluetooth (ctx.ble)', LIBRE2_DIRECT_ID);
     const secrets = requireCapability(ctx.secrets, 'a secret store (ctx.secrets)', LIBRE2_DIRECT_ID);
     const buffer = new ReadingBuffer();
+    const heartbeat = new HeartbeatEmitter();
     const processor = new LibreReadingProcessor({ source: LIBRE2_DIRECT_ID, clock: ctx.clock });
-    const { protocol, loadSensor, sensorInfo } = libre2Protocol(ctx, secrets, buffer, processor);
+    const { protocol, loadSensor, sensorInfo } = libre2Protocol(ctx, secrets, buffer, heartbeat, processor);
     const session = new LibreBleSession({
       ble,
       clock: ctx.clock,
@@ -126,6 +134,7 @@ export const libre2DirectCgm = defineCgm<Libre2DirectSettings>({
       protocol,
       loadDeviceId: () => secrets.get(LIBRE_SECRET_KEYS.libre2DeviceId),
       saveDeviceId: (id) => secrets.set(LIBRE_SECRET_KEYS.libre2DeviceId, id),
+      onLinkEnded: heartbeat.emit,
     });
     return {
       meta: LIBRE2_META,
@@ -135,8 +144,10 @@ export const libre2DirectCgm = defineCgm<Libre2DirectSettings>({
       },
       stop: () => session.stop(),
       readings: async (since) => buffer.since(since),
+      onHeartbeat: heartbeat.on,
       sensorInfo,
       idle: () => session.idle(),
+      connectionError: () => session.lastError,
     };
   },
 });
@@ -191,6 +202,7 @@ export const libreTransmitterCgm = defineCgm<LibreTransmitterSettings>({
     const ble = requireCapability(ctx.ble, 'Bluetooth (ctx.ble)', LIBRE_TRANSMITTER_ID);
     const secrets = requireCapability(ctx.secrets, 'a secret store (ctx.secrets)', LIBRE_TRANSMITTER_ID);
     const buffer = new ReadingBuffer();
+    const heartbeat = new HeartbeatEmitter();
     const processor = new LibreReadingProcessor({ source: LIBRE_TRANSMITTER_ID, clock: ctx.clock, backfillFromHistory: settings.backfillFromHistory });
     const calibration = calibrationStore(secrets, LIBRE_SECRET_KEYS.transmitterCalibration);
     let proxy: LibreTransmitterProxy | null = null;
@@ -220,7 +232,7 @@ export const libreTransmitterCgm = defineCgm<LibreTransmitterSettings>({
         const out = proxy.onNotify(value, ctx.clock.now());
         if (out.event === 'noSensor') ctx.log.warn('Libre transmitter: no sensor detected');
         if (out.event === 'newSensor') ctx.log.info('Libre transmitter: new sensor detected');
-        if (out.packet) report(ctx, buffer, await processor.transmitterDidUpdate(out.packet.sensorData, out.packet.metadata, calibration));
+        if (out.packet) report(ctx, buffer, heartbeat, await processor.transmitterDidUpdate(out.packet.sensorData, out.packet.metadata, calibration));
         return out.writes;
       },
     };
@@ -236,13 +248,16 @@ export const libreTransmitterCgm = defineCgm<LibreTransmitterSettings>({
         return selected?.id ?? null;
       },
       saveDeviceId: async () => {},
+      onLinkEnded: heartbeat.emit,
     });
     return {
       meta: TRANSMITTER_META,
       start: () => session.start(),
       stop: () => session.stop(),
       readings: async (since) => buffer.since(since),
+      onHeartbeat: heartbeat.on,
       idle: () => session.idle(),
+      connectionError: () => session.lastError,
     };
   },
 });

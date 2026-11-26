@@ -8,7 +8,7 @@
  * notifications are not ported (alerts are logged).
  */
 import type { BleConnection, Bytes, DeviceContext, Logger, Millis, PumpState, SecretStore, BleTransport, Clock } from '@buddy/core';
-import { fromHex, hex } from '@buddy/core';
+import { fromHex, HeartbeatEmitter, hex } from '@buddy/core';
 import type { MedtrumBasePacket } from './base-packet';
 import { MEDTRUM_INSULIN_STEP } from './bytes';
 import { genSessionToken } from './crypto';
@@ -75,6 +75,7 @@ export class MedtrumNanoCore {
   protected session!: MedtrumSession;
   protected ledger!: DoseLedger;
   private loading: Promise<void> | null = null;
+  private readonly heartbeats = new HeartbeatEmitter();
 
   private conn: BleConnection | null = null;
   protected link: MedtrumLink | null = null;
@@ -199,7 +200,7 @@ export class MedtrumNanoCore {
     const link = new MedtrumLink(conn, {
       writeTimeoutMs: this.opts.writeTimeoutMs,
       log: this.log,
-      onStatus: (s) => this.onHeartbeat(link, s),
+      onStatus: (s) => this.handleHeartbeat(link, s),
       onDisconnect: (e) => this.onLinkLost(link, e),
     });
     this.link = link;
@@ -273,13 +274,24 @@ export class MedtrumNanoCore {
     this.link = null;
     this.conn = null;
     this.ready = false;
+    this.heartbeats.emit();
   }
 
-  private onHeartbeat(link: MedtrumLink, s: SynchronizePacketResponse): void {
+  private handleHeartbeat(link: MedtrumLink, s: SynchronizePacketResponse): void {
     if (this.link !== link || !this.session) return;
     this.applyStatus(s, { duringReconnect: false, fullSync: false });
     void this.persist();
     this.considerFullSync();
+    this.heartbeats.emit(); // after the status was applied; listeners only request a loop run
+  }
+
+  /**
+   * BLE heartbeat for the runtime (Trio `pumpManagerMustProvideBLEHeartbeat`): the patch notifies about once a
+   * minute while the link is up, and the link ending is a wake-up too. The link is only re-established by the next
+   * command, so this heartbeat stops after a link loss until then (nothing re-arms a connect here).
+   */
+  onHeartbeat(listener: () => void): () => void {
+    return this.heartbeats.on(listener);
   }
 
   private considerFullSync(): void {

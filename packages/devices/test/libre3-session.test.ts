@@ -205,6 +205,30 @@ describe('reconnect', () => {
     await r.source.stop();
   });
 
+  it('a first connect that fails for a known sensor surfaces the error and still arms a pending connect', async () => {
+    const r = await rig();
+    await r.source.start();
+    await r.source.stop();
+    r.h.ble.setInRange('libre3-sim', false);
+    const real = r.h.ble.transport.connect;
+    let failFirst = true;
+    r.h.ble.transport.connect = (id, options) => {
+      if (failFirst) {
+        failFirst = false;
+        return Promise.reject(new Error('peripheral unknown'));
+      }
+      return real(id, options);
+    };
+    await expect(r.source.start()).resolves.toBeUndefined();
+    await waitFor(() => r.h.ble.pendingConnects().includes('libre3-sim'), 'pending connect armed');
+    expect(r.source.status().connectionError).toMatch(/peripheral unknown/);
+    expect(r.h.ble.connectCalls.at(-1)!.options?.timeoutMs).toBeNull();
+    r.h.ble.setInRange('libre3-sim', true);
+    await waitFor(() => r.source.status().phase === 'streaming', 'streaming after the sensor returned');
+    expect(r.source.status().connectionError).toBeNull();
+    await r.source.stop();
+  });
+
   it('forgets a stale peripheral id after repeated connect failures so the next attempt scans', async () => {
     const r = await rig();
     await r.source.start();
@@ -212,8 +236,13 @@ describe('reconnect', () => {
     r.h.ble.transport.connect = async () => {
       throw new Error('peripheral unknown');
     };
-    for (let i = 0; i < 3; i++) await expect(r.source.start()).rejects.toThrow(/peripheral unknown/);
-    expect((await loadSensorState(r.h.secrets))!.peripheralId).toBeNull();
+    // the failed first connect is armed again in the background; each failure counts toward forgetting the id
+    await r.source.start();
+    const forgotten = async () => (await loadSensorState(r.h.secrets))!.peripheralId === null;
+    const end = Date.now() + 3_000;
+    while (!(await forgotten()) && Date.now() < end) await new Promise((res) => setTimeout(res, 10));
+    expect(await forgotten()).toBe(true);
+    await r.source.stop();
   });
 
   it('stop() ends the connection and further drops do not reconnect', async () => {

@@ -5,6 +5,7 @@ import { pairLibreSensor, restartRuntime, useRuntime } from '@/runtime/runtime';
 import { CapsuleButton, NavRow, PrimaryButton, Row, Section, SheetScreen, T, useTrioColors } from '@/trio';
 import { deleteDevice, deviceErrors, errorText, saveDeviceValues, useActiveDevice, useDeviceValues } from '@/features/devices/device-actions';
 import { PluginForm } from '@/features/devices/plugin-form';
+import { HeartbeatDeviceSection } from '@/features/devices/heartbeat-device-section';
 
 /** Trio CGM settings sheet (`CustomCGMOptionsView` / the CGM kit's settings) with "Delete CGM". */
 export default function CgmSettings() {
@@ -72,6 +73,9 @@ export default function CgmSettings() {
       },
     ]);
 
+  // Trio: a CGM with its own Bluetooth link is the heartbeat; any other CGM can use a heartbeat transmitter.
+  const providesHeartbeat = plugin.meta.transport === 'ble';
+  const canUseHeartbeatDevice = !providesHeartbeat && plugin.meta.maturity !== 'simulator';
   const url = id === 'nightscout-cgm' ? String(values.url ?? '') : '';
 
   return (
@@ -82,7 +86,7 @@ export default function CgmSettings() {
       <Section header="Configuration">
         <Row>
           <View style={{ flex: 1, gap: 10 }}>
-            <T>CGM is not used as heartbeat.</T>
+            <T>{providesHeartbeat ? 'CGM is used as heartbeat.' : 'CGM is not used as heartbeat.'}</T>
             {id === 'demo-cgm' ? <T style_="headline">Glucose trace IS affected by insulin and carb entries.</T> : null}
             <T style_="footnote" secondary>
               {id === 'demo-cgm'
@@ -115,6 +119,8 @@ export default function CgmSettings() {
           setValue(k, v);
         }}
       />
+
+      {canUseHeartbeatDevice ? <HeartbeatDeviceSection /> : null}
 
       {id === 'libre-2-direct' ? (
         <Section footer={`Pair a new, warmed-up sensor: hold the back of your ${Platform.OS === 'android' ? 'phone' : 'iPhone'} to it.`}>

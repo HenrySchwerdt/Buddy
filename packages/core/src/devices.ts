@@ -63,6 +63,12 @@ export interface PumpDriver {
   resume(): Promise<CommandResult>;
   /** Delivered doses with `date >= since`. */
   history(since: Millis): Promise<InsulinDose[]>;
+  /**
+   * Optional Bluetooth heartbeat: fires when the pump link showed activity (a connect, a notification or a
+   * disconnect), which wakes a backgrounded iOS app. Mirrors Trio's `pumpManagerMustProvideBLEHeartbeat`: the
+   * runtime only uses it when the CGM provides no heartbeat. A listener must never dose; it only requests a loop run.
+   */
+  onHeartbeat?(listener: () => void): () => void;
   /** Read-only sources (e.g. following another loop via Nightscout) may also supply carbs. */
   carbHistory?(since: Millis): Promise<CarbEntry[]>;
   /** What another loop (e.g. Trio) decided, for side-by-side comparison in shadow mode. */
@@ -100,6 +106,12 @@ export interface CgmSource {
   stop(): Promise<void>;
   /** Readings with `date > since`, any order. */
   readings(since: Millis): Promise<GlucoseReading[]>;
+  /**
+   * Optional Bluetooth heartbeat (Trio `cgmProvidesBLEHeartbeat`): fires after new readings arrived and when a
+   * link ended, i.e. whenever the sensor woke the app. The runtime decides whether a loop run is due. Present only
+   * on sources that keep a system-managed BLE scan or connect armed, so a backgrounded iOS app is woken by them.
+   */
+  onHeartbeat?(listener: () => void): () => void;
 }
 
 /** A plugin that knows how to build a device from user settings. */

@@ -8,6 +8,7 @@ export * from './settings-schema';
 export * from './algorithm';
 export * from './safety';
 export * from './devices';
+export * from './heartbeat';
 export * from './transport';
 export * from './registry';
 export * from './store';

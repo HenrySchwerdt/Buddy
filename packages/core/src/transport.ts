@@ -17,9 +17,24 @@ export interface BleAdvertisement {
 }
 
 export interface BleScanOptions {
-  /** Only report peripherals advertising one of these services (lower-case 128-bit UUIDs). */
+  /** Only report peripherals advertising one of these services (lower-case 128-bit UUIDs). iOS only scans in the background with a service filter. */
   readonly services?: readonly string[];
-  readonly timeoutMs: number;
+  /**
+   * Milliseconds until the scan ends by itself. `null` scans until `stopScan()`: a system-managed operation that
+   * keeps running while iOS has the app suspended and wakes it on a discovery (no JS timer is involved).
+   */
+  readonly timeoutMs: number | null;
+  /** Report a peripheral on every advertisement instead of once. iOS coalesces repeats in the background regardless. */
+  readonly allowDuplicates?: boolean;
+}
+
+export interface BleConnectOptions {
+  /**
+   * Milliseconds until the attempt fails (omitted: the transport's default). `null` never times out: a pending
+   * connect, also a system-managed operation, which completes whenever the peripheral comes into range.
+   */
+  readonly timeoutMs?: number | null;
+  readonly requestMtu?: number;
 }
 
 export interface BleConnection {
@@ -30,16 +45,23 @@ export interface BleConnection {
   write(service: string, characteristic: string, data: Bytes, withResponse: boolean): Promise<void>;
   /** Subscribes to notifications/indications; returns an unsubscribe function. */
   subscribe(service: string, characteristic: string, onData: (data: Bytes) => void): Promise<() => void>;
+  /**
+   * Subscribes to every notifying/indicating characteristic the peripheral offers (service discovery included);
+   * returns an unsubscribe function. Used by generic "heartbeat" peripherals whose protocol Buddy does not speak.
+   */
+  subscribeAll?(onData: (characteristic: string, data: Bytes) => void): Promise<() => void>;
   onDisconnect(listener: (error: Error | null) => void): () => void;
   disconnect(): Promise<void>;
 }
 
 export interface BleTransport {
   state(): Promise<BleState>;
-  /** Resolves when the timeout elapses or `stopScan` is called. */
+  /** Resolves when the timeout elapses (if any) or `stopScan` is called. */
   scan(options: BleScanOptions, onAdvertisement: (ad: BleAdvertisement) => void): Promise<void>;
   stopScan(): void;
-  connect(deviceId: string, options?: { readonly timeoutMs?: number; readonly requestMtu?: number }): Promise<BleConnection>;
+  connect(deviceId: string, options?: BleConnectOptions): Promise<BleConnection>;
+  /** Cancels a pending or running connection attempt to `deviceId` (the `connect` promise then rejects). */
+  cancelConnect?(deviceId: string): void;
 }
 
 /** ISO 15693 NFC (Libre sensors). */

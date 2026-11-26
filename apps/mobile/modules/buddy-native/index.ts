@@ -51,6 +51,13 @@ interface BuddyNativeApi {
   endLiveActivity?(): Promise<void>;
   /** JSON read by the App Intents (Get State, Bolus switch). */
   setShortcutState?(json: string): void;
+  /**
+   * Starts a UIApplication background task, so work that began while iOS woke the app (a BLE reading, a loop run)
+   * can finish before the app is suspended again. Returns its id, or 0 when iOS refused. The expiration handler
+   * ends the task natively; `endBackgroundTask` is idempotent. A no-op returning 0 on Android.
+   */
+  beginBackgroundTask?(name: string): number;
+  endBackgroundTask?(id: number): void;
   // Android ───────────────────────────────────────────
   /** Starts the foreground service (and its headless JS task). Resolves false when Android refuses. */
   startForegroundService?(title: string, text: string, whenMs: number): Promise<boolean>;

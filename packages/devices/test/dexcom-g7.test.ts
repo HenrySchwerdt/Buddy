@@ -259,7 +259,7 @@ const ctxWith = (ble: DeviceContext['ble'], secrets = createMemorySecretStore(),
   ble,
   secrets,
 });
-const FAST = { scanWindowMs: 20, reconnectDelayMs: 5_000, rescanDelayMs: 5_000, responseTimeoutMs: 500, adapterRetryMs: 20 };
+const FAST = { reconnectDelayMs: 5_000, rescanDelayMs: 5_000, responseTimeoutMs: 500, adapterRetryMs: 20 };
 
 describe('Dexcom G7 plugin', () => {
   it('has the expected meta and validates settings / BLE', () => {

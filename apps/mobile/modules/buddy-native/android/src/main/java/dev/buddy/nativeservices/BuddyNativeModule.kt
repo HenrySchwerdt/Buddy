@@ -39,6 +39,11 @@ class BuddyNativeModule : Module() {
 
     Function("foregroundServiceError") { -> BuddyForegroundService.lastError }
 
+    /** iOS-only concept (UIApplication background tasks). Android keeps the app alive with the foreground service; 0 = no task. */
+    Function("beginBackgroundTask") { _: String -> 0 }
+
+    Function("endBackgroundTask") { _: Int -> }
+
     /** Dynamic shortcuts (long-press the launcher icon): override and temp target presets. Static ones live in the manifest. */
     Function("setDynamicShortcuts") { shortcuts: List<NativeShortcutRecord> ->
       val ctx = context

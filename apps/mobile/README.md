@@ -55,6 +55,60 @@ Join our community of developers creating universal apps.
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
 
+## Background operation (iOS): Bluetooth heartbeats, not timers
+
+A backgrounded iOS app is suspended and its JavaScript timers (`setInterval`, `setTimeout`) stop. Buddy therefore does
+not schedule its 5-minute loop with timers when it is in the background. It does what Trio does: **a Bluetooth event
+wakes the app, and the event starts the loop.**
+
+What wakes the app (needs the `bluetooth-central` background mode, set up by the `react-native-ble-plx` plugin in
+`app.json`, and the app not force-quit):
+
+| Source | What CoreBluetooth keeps running while the app is suspended | Heartbeat |
+| --- | --- | --- |
+| Dexcom G7, Dexcom G6 | a service-filtered scan with no timeout, armed again the moment a link ends | each new reading, and each ended link |
+| Libre 2 direct, Libre via MiaoMiao/Bubble | a pending connect (no timeout) to the known peripheral; a 7 s delay owed by the transmitters is a scan that ignores adverts until it is over | each new reading, each ended link |
+| Libre 3 direct | a pending connect (no timeout) to the known sensor | each new reading, each ended link |
+| Syai Ultra | a pending connect (no timeout) to the known sensor | each new reading, each ended link |
+| Nightscout, Dexcom Share, LibreLinkUp, xDrip (not Bluetooth) | a pending connect to a **heartbeat transmitter** you pick in CGM settings (Trio's "heartbeat transmitter"), for example the CGM's own transmitter | each connect, notification (at most one per 5 s) and disconnect of that device |
+| Medtrum Nano pump | the pump link while it is up (only when the CGM provides no heartbeat) | each status notification and the link ending |
+
+How a wake becomes a loop run (`src/runtime/heartbeat-loop.ts`, `heartbeat-policy.ts`, as in Trio's `heartbeat` ->
+`recommendsLoop`): the heartbeat runs a loop cycle immediately when the CGM holds a reading newer than anything the
+last run saw, or when the last run is 4.5 minutes old or more. A wake-up without a new reading and a recent run does
+nothing. Only one cycle runs at a time.
+
+To finish before iOS suspends the app again, every wake runs inside a `UIApplication.beginBackgroundTask` (local
+module `buddy-native`, see `modules/buddy-native/README.md`): each BLE discovery, connect, notification and
+disconnect renews a 25 s task in `transports/ble.ts`, and every heartbeat-triggered cycle (including its alerts and
+uploads) and every background-task tick runs inside its own task, ended in `finally`. Without the native module
+(Expo Go, tests, Android) the guard only does bookkeeping.
+
+The drivers keep no timer between a disconnect and the next armed scan or pending connect. Protocol waits (G7: no
+reconnect for 30 s after its session; G6: 2 s) are a `NotBefore` gate checked when an advertisement arrives. Timers
+remain only for Bluetooth switched off, a Libre 3 backoff after 3 failures, and a guard after 3 instant failures in a row (a failed connect is otherwise re-armed at once); a
+suspended app does not wake for those.
+
+The `setInterval` poll in `runtime.ts` stays for the foreground and as a fallback, and `expo-background-task` (iOS
+`BGTaskScheduler`, about every 15 minutes at best, never in Low Power Mode) stays as a safety net. After iOS
+terminated the app for memory it relaunches it for a pending Bluetooth event (state restoration, `background-ble.ts`);
+the runtime then starts, builds the CGM (which arms its scan or connect again) and the heartbeat transmitter.
+
+What does **not** wake the app, exactly as with Trio:
+
+- **A force quit** (swiping Buddy away in the app switcher) stops everything until the user opens Buddy again.
+- A CGM that is not Bluetooth and no heartbeat transmitter chosen: Buddy then only loops when it is open or when iOS
+  grants a background task.
+- Bluetooth switched off, or the CGM out of range: nothing is armed that could fire.
+- Libre 2 and Libre 3: a first connect that fails after a (re)launch no longer rejects `start()`; the error is kept
+  (`connectionError`, Libre 3 `status().connectionError`) and a pending connect is armed. Only Bluetooth being off, an
+  ended sensor or a missing credential still fail the start.
+- The G7 gate relies on the advertisement of the next 5-minute cycle being reported; iOS coalesces repeated
+  advertisements in the background, which is what the gate wants but is not verified on a device.
+
+Bench use only. None of this was exercised with a real sensor or pump in this repository; see
+`modules/buddy-native/README.md` for what was verified.
+
 ## xDrip CGM source (xDrip4iOS / xDrip+)
 
 Buddy can take glucose from the xDrip app on the same phone, like Trio's "xDrip4iOS" CGM option. Native code lives in the local Expo module `modules/xdrip-bridge` (autolinked by `expo prebuild`; never edit the generated `ios/` and `android/` folders) and the config plugin `plugins/with-xdrip.js`. The device logic is pure TypeScript in `packages/devices/src/xdrip`.

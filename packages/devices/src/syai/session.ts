@@ -41,6 +41,11 @@ export interface SessionTarget {
   readonly keyGroup: Bytes;
   /** Peripheral id from an earlier connection; tried before scanning. */
   readonly peripheralId: string | null;
+  /**
+   * A reconnect after a dropped link: the known peripheral is connected with no timeout (a pending connect that
+   * CoreBluetooth keeps alive while iOS has the app suspended), so no JS timer decides when to try again.
+   */
+  readonly pending?: boolean;
 }
 
 export interface SessionTimeouts {
@@ -69,7 +74,7 @@ async function openConnection(env: SessionEnv, target: SessionTarget, t: Session
   if (state !== 'poweredOn') throw new SyaiFailure('bluetoothUnavailable', `Bluetooth is ${state}`);
   if (target.peripheralId) {
     try {
-      return await env.ble.connect(target.peripheralId, { timeoutMs: t.connectMs });
+      return await env.ble.connect(target.peripheralId, { timeoutMs: target.pending ? null : t.connectMs });
     } catch (e) {
       env.log.info(`Syai: direct connect to ${failureOf(e).message} failed, scanning`);
     }

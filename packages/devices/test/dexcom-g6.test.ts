@@ -492,7 +492,7 @@ const ctxWith = (ble: DeviceContext['ble'], secrets = createMemorySecretStore())
   ble,
   secrets,
 });
-const FAST = { scanWindowMs: 20, rescanDelayMs: 5_000, responseTimeoutMs: 500, bondTimeoutMs: 500, adapterRetryMs: 20 };
+const FAST = { rescanDelayMs: 5_000, responseTimeoutMs: 500, bondTimeoutMs: 500, adapterRetryMs: 20 };
 
 describe('Dexcom G6 plugin', () => {
   it('has the expected meta and throws without BLE or with a bad ID', () => {

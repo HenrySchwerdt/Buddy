@@ -9,12 +9,15 @@
  * - active: we authenticate ourselves (AES challenge), bond if needed, read time, glucose,
  *   calibration and version, then send Disconnect. Only works with no other app bonded.
  *
- * CoreBluetooth state restoration / `retrievePeripherals` have no equivalent in the
- * injected transport; we always scan for the advertisement service instead.
+ * `retrievePeripherals` has no equivalent in the injected transport; we always scan for the advertisement
+ * service instead. The scan has no timeout and is armed again the moment a link ends (CoreBluetooth keeps it
+ * running while iOS has the app suspended and wakes the app on the next advertisement); the short pause the
+ * transmitter needs to shut down is a `NotBefore` gate on advertisements, not a sleeping timer.
  * The command queue (start/stop sensor, calibrate, reset) is not ported (see index.ts).
  */
 import type { BleAdvertisement, BleConnection, BleTransport, Bytes, Clock, Logger } from '@buddy/core';
 import { hex } from '@buddy/core';
+import { NotBefore, scanFirst } from '../ble-rearm';
 import { computeHash } from './auth';
 import {
   appendBackfillFrame,
@@ -61,21 +64,20 @@ export interface TransmitterDelegate {
 }
 
 export interface G6Timing {
-  /** Length of one scan window before re-checking the adapter state. */
-  readonly scanWindowMs: number;
   /**
    * Persistent connections don't seem to work with the transmitter shutoff: the OS won't re-wake
-   * the app unless it's scanning. The delay gives the transmitter time to shut down.
+   * the app unless it's scanning. Advertisements are ignored for this long after a link ended, which gives the
+   * transmitter time to shut down.
    */
   readonly rescanDelayMs: number;
   readonly responseTimeoutMs: number;
   /** Enabling control notifications waits this long when a bond request (pairing prompt) is pending. */
   readonly bondTimeoutMs: number;
+  /** Bluetooth off: how often to look at the adapter again (nothing can be armed meanwhile). */
   readonly adapterRetryMs: number;
 }
 
 export const DEFAULT_G6_TIMING: G6Timing = {
-  scanWindowMs: 60_000,
   rescanDelayMs: 2_000,
   responseTimeoutMs: 2_000,
   bondTimeoutMs: 15_000,
@@ -94,6 +96,8 @@ export interface TransmitterOptions {
   readonly log: Logger;
   readonly delegate: TransmitterDelegate;
   readonly timing?: Partial<G6Timing>;
+  /** A BLE link ended: the app was just woken by the transmitter. Feeds the CGM heartbeat. */
+  readonly onLinkEnded?: () => void;
   /** 8 random bytes for the auth token (injectable for tests). */
   readonly randomToken?: () => Bytes;
 }
@@ -111,6 +115,7 @@ export class Transmitter {
   private loop: Promise<void> | null = null;
   private conn: BleConnection | null = null;
   private readonly sleeper = new Sleeper();
+  private readonly gate: NotBefore;
 
   // Passive observation state
   /** The initial activation date of the transmitter (epoch ms). */
@@ -124,6 +129,7 @@ export class Transmitter {
 
   constructor(private readonly o: TransmitterOptions) {
     this.timing = { ...DEFAULT_G6_TIMING, ...o.timing };
+    this.gate = new NotBefore(o.clock);
     this.activationDate = o.activationDate;
     this.needsExpiryRead = o.needsExpiryRead;
   }
@@ -139,6 +145,7 @@ export class Transmitter {
   resumeScanning(): void {
     if (this.running) return;
     this.running = true;
+    this.gate.clear();
     this.loop = this.runLoop();
   }
 
@@ -167,24 +174,31 @@ export class Transmitter {
           await this.sleeper.sleep(this.timing.adapterRetryMs);
           continue;
         }
+        if (!this.running) break; // stopScanning() ran while the adapter state was read: do not arm a scan nobody stops
         const deviceId = await this.scanForPeripheral();
-        if (!deviceId || !this.running) continue;
+        if (!this.running) break;
+        if (!deviceId) {
+          // The scan ended without a result (the transport gave up): nothing is armed now, so back off a little.
+          await this.sleeper.sleep(this.timing.rescanDelayMs);
+          continue;
+        }
         await this.runConnection(deviceId);
+        // No sleep: the next loop turn arms the scan at once; only advertisements are held back.
+        this.gate.hold(this.timing.rescanDelayMs);
+        this.o.onLinkEnded?.();
       } catch (e) {
         this.o.delegate.didError(errorOf(e));
+        // Error path only (a connect that failed, a transport fault): a short wait keeps a hard failure from spinning.
+        this.gate.hold(this.timing.rescanDelayMs);
+        if (this.running) await this.sleeper.sleep(this.timing.rescanDelayMs);
       }
-      if (this.running) await this.sleeper.sleep(this.timing.rescanDelayMs);
     }
   }
 
+  /** Arms a service-filtered scan with no timeout; advertisements before the gate opens are ignored. */
   private async scanForPeripheral(): Promise<string | null> {
-    let found: string | null = null;
-    await this.o.ble.scan({ services: [ADVERTISEMENT_SERVICE], timeoutMs: this.timing.scanWindowMs }, (ad) => {
-      if (found || !this.shouldConnect(ad)) return;
-      found = ad.id;
-      this.o.ble.stopScan();
-    });
-    return found;
+    const ad = await scanFirst(this.o.ble, { services: [ADVERTISEMENT_SERVICE], timeoutMs: null }, (candidate) => this.gate.isOpen && this.shouldConnect(candidate));
+    return ad?.id ?? null;
   }
 
   private async runConnection(deviceId: string): Promise<void> {

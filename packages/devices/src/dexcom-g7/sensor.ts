@@ -7,12 +7,16 @@
  * authenticated status), it subscribes to control and parses the glucose and backfill traffic.
  *
  * Differences forced by the injected transport (no CoreBluetooth): one connection at a time
- * instead of several managed peripherals, no `retrieveConnectedPeripherals`/state
- * restoration, and the 30 s "connect start delay" after a link ends is a plain wait before
- * scanning again.
+ * instead of several managed peripherals, and no `retrieveConnectedPeripherals`.
+ *
+ * Background operation (iOS): the scan is service-filtered and has no timeout, and it is started again the
+ * moment a link ends, so CoreBluetooth always has work and wakes a suspended app on the next advertisement.
+ * The 30 s "connect start delay" after a link ends is a `NotBefore` gate evaluated when an advertisement
+ * arrives (advertisements before it are ignored), not a sleeping timer that a suspended app would never wake from.
  */
 import type { BleAdvertisement, BleConnection, BleTransport, Bytes, Clock, Logger } from '@buddy/core';
 import { hex } from '@buddy/core';
+import { NotBefore, scanFirst } from '../ble-rearm';
 import { ADVERTISEMENT_SERVICE, CGM_CHARACTERISTIC, CGM_SERVICE, errorOf, NotifyChannel, SerialQueue, Sleeper, withTimeout } from '../dexcom-g6/ble-common';
 import {
   G7Opcode,
@@ -41,16 +45,16 @@ export interface G7SensorDelegate {
 }
 
 export interface G7Timing {
-  readonly scanWindowMs: number;
-  /** After the followed sensor's link ends it keeps advertising for a while; wait before reconnecting. */
+  /** After the followed sensor's link ends it keeps advertising for a while; advertisements are ignored for this long. */
   readonly reconnectDelayMs: number;
+  /** Same gate after a link to some other sensor, a failed connect or a scan that ended without a result. */
   readonly rescanDelayMs: number;
   readonly responseTimeoutMs: number;
+  /** Bluetooth off: how often to look at the adapter again (nothing can be armed meanwhile). */
   readonly adapterRetryMs: number;
 }
 
 export const DEFAULT_G7_TIMING: G7Timing = {
-  scanWindowMs: 60_000,
   reconnectDelayMs: 30_000,
   rescanDelayMs: 2_000,
   responseTimeoutMs: 2_000,
@@ -66,6 +70,8 @@ export interface G7SensorOptions {
   readonly log: Logger;
   readonly delegate: G7SensorDelegate;
   readonly timing?: Partial<G7Timing>;
+  /** A BLE link ended (any sensor): the app was just woken by the sensor. Feeds the CGM heartbeat. */
+  readonly onLinkEnded?: () => void;
 }
 
 export class G7Sensor {
@@ -81,6 +87,9 @@ export class G7Sensor {
 
   private readonly timing: G7Timing;
   private readonly sleeper = new Sleeper();
+  private readonly gate: NotBefore;
+  /** Advertisements repeat (the scan reports duplicates): log a peripheral we skip once, not on every advertisement. */
+  private lastIgnored: string | null = null;
   private running = false;
   private loop: Promise<void> | null = null;
   private conn: BleConnection | null = null;
@@ -89,6 +98,7 @@ export class G7Sensor {
   constructor(private readonly o: G7SensorOptions) {
     this.sensorID = o.sensorID;
     this.timing = { ...DEFAULT_G7_TIMING, ...o.timing };
+    this.gate = new NotBefore(o.clock);
   }
 
   get followedSensorID(): string | null {
@@ -106,6 +116,7 @@ export class G7Sensor {
   resumeScanning(): void {
     if (this.running) return;
     this.running = true;
+    this.gate.clear();
     this.loop = this.runLoop();
   }
 
@@ -121,6 +132,7 @@ export class G7Sensor {
   /** Forgets the followed sensor and looks for any new one. */
   scanForNewSensor(): void {
     this.sensorID = null;
+    this.gate.clear();
     void this.disconnectCurrent();
     this.sleeper.cancelAll();
   }
@@ -136,7 +148,8 @@ export class G7Sensor {
       if (this.sensorID !== null && name.slice(-2) === this.sensorID.slice(-2)) return 'makeActive';
       if (this.sensorID === null) return 'connect';
     }
-    this.o.log.info(`Dexcom G7: not connecting to peripheral ${name}`);
+    if (name !== this.lastIgnored) this.o.log.info(`Dexcom G7: not connecting to peripheral ${name}`);
+    this.lastIgnored = name;
     return 'ignore';
   }
 
@@ -150,31 +163,38 @@ export class G7Sensor {
 
   private async runLoop(): Promise<void> {
     while (this.running) {
-      let delay = this.timing.rescanDelayMs;
       try {
         if ((await this.o.ble.state()) !== 'poweredOn') {
           await this.sleeper.sleep(this.timing.adapterRetryMs);
           continue;
         }
+        if (!this.running) break; // stopScanning() ran while the adapter state was read: do not arm a scan nobody stops
         const ad = await this.scanForPeripheral();
-        if (!ad || !this.running) continue;
+        if (!this.running) break;
+        if (!ad) {
+          // The scan ended without a result (the transport gave up): nothing is armed now, so back off a little.
+          await this.sleeper.sleep(this.timing.rescanDelayMs);
+          continue;
+        }
         const wasActive = await this.runConnection(ad);
-        if (wasActive && !this.localDisconnect) delay = this.timing.reconnectDelayMs;
+        // No sleep: the next loop turn arms the scan at once; only advertisements are held back.
+        this.gate.hold(wasActive && !this.localDisconnect ? this.timing.reconnectDelayMs : this.timing.rescanDelayMs);
+        this.o.onLinkEnded?.();
       } catch (e) {
         this.o.delegate.didError(errorOf(e));
+        // Error path only (a connect that failed, a transport fault): a short wait keeps a hard failure from spinning.
+        this.gate.hold(this.timing.rescanDelayMs);
+        if (this.running) await this.sleeper.sleep(this.timing.rescanDelayMs);
       }
-      if (this.running) await this.sleeper.sleep(delay);
     }
   }
 
-  private async scanForPeripheral(): Promise<BleAdvertisement | null> {
-    let found: BleAdvertisement | null = null;
-    await this.o.ble.scan({ services: [ADVERTISEMENT_SERVICE], timeoutMs: this.timing.scanWindowMs }, (ad) => {
-      if (found || this.shouldConnect(ad.name) === 'ignore') return;
-      found = ad;
-      this.o.ble.stopScan();
+  /** Arms a service-filtered scan with no timeout; advertisements before the gate opens are ignored. */
+  private scanForPeripheral(): Promise<BleAdvertisement | null> {
+    return scanFirst(this.o.ble, { services: [ADVERTISEMENT_SERVICE], timeoutMs: null, allowDuplicates: true }, (ad) => {
+      if (this.shouldConnect(ad.name) === 'ignore') return false;
+      return this.gate.isOpen;
     });
-    return found;
   }
 
   /** Returns whether the link was to the followed ("active") sensor. */

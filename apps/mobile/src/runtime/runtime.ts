@@ -26,7 +26,11 @@ import { startNativeServices } from './background'; // native-services
 import type { SensorSession } from '@buddy/nightscout';
 import { loadSecrets } from './secrets';
 import { processAlerts, uploadToNightscout } from './services';
-import { bleTransport } from './transports/ble';
+import { bleTransport, primeBleManager } from './transports/ble';
+import { setBleRestoreHandler } from './background-ble';
+import { backgroundTasks } from './background-tasks';
+import { startHeartbeatLoop } from './heartbeat-loop';
+import { onTransmitterHeartbeat, syncHeartbeatTransmitter } from './heartbeat-transmitter-service';
 import { nfcTransport } from './transports/nfc';
 import { keychainSecretStore } from './transports/secret-store';
 import { xdripBridge } from './transports/xdrip'; // xdrip-cgm: native bridge, consumed by the xdrip CGM plugin
@@ -81,6 +85,9 @@ let pump: PumpDriver | null = null;
 let cgm: CgmSource | null = null;
 let engine: LoopEngine | null = null;
 let stopScheduler: (() => void) | null = null;
+let stopHeartbeats: (() => void) | null = null;
+/** What the last loop cycle left running (alerts, uploads); a heartbeat keeps its background task open until it is done. */
+let lastAfterLoop: Promise<void> = Promise.resolve();
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let unsubscribePersist: (() => void) | null = null;
 
@@ -168,7 +175,7 @@ export async function runLoop(): Promise<LoopRun | null> {
     const run = await engine.run();
     const pumpState = pump ? await pump.status().catch(() => null) : null;
     useRuntime.setState({ pump: pumpState, deviceError: run?.error ?? null, now: clock.now() });
-    void afterLoop(pumpState);
+    lastAfterLoop = afterLoop(pumpState).catch((e: unknown) => log.warn(`After-loop services failed: ${String(e)}`));
     return run;
   } finally {
     useRuntime.setState({ looping: false });
@@ -213,6 +220,34 @@ async function afterLoop(pumpState: PumpState | null) {
 function sensorSessions(): SensorSession[] {
   const session = (cgm as { sensorSession?: () => SensorSession | null } | null)?.sensorSession?.();
   return session ? [session] : [];
+}
+
+/**
+ * Bluetooth heartbeat -> loop (Trio `DeviceDataManager.heartbeat`): see heartbeat-loop.ts. The interval below stays
+ * for the foreground and as a fallback; it cannot run while iOS has the app suspended, the heartbeats do.
+ */
+function startHeartbeats(demo: boolean) {
+  stopHeartbeats?.();
+  stopHeartbeats = null;
+  if (demo || (!pump && !cgm)) return;
+  stopHeartbeats = startHeartbeatLoop({
+    cgm,
+    pump,
+    onTransmitterHeartbeat,
+    snapshot: () => store.snapshot(),
+    now: () => clock.now(),
+    isLooping: () => useRuntime.getState().looping,
+    runLoop,
+    afterLoopSettled: () => lastAfterLoop,
+    tasks: backgroundTasks,
+    log,
+  });
+}
+
+/** The heartbeat transmitter is only for CGMs that provide no Bluetooth heartbeat themselves (Trio's rule). */
+export function syncHeartbeatDevice(): Promise<void> {
+  const enabled = !useRuntime.getState().demo && cgm !== null && !cgm.onHeartbeat;
+  return syncHeartbeatTransmitter({ enabled, clock, log });
 }
 
 function lastRunDate(): number {
@@ -307,9 +342,16 @@ let starting: Promise<void> | null = null;
 export function restartRuntime(): Promise<void> {
   starting = (async () => {
     stopScheduler?.();
+    stopHeartbeats?.();
+    stopHeartbeats = null;
     useRuntime.setState({ ready: false });
     startServices(serviceHost);
     try {
+      // The previous CGM keeps its BLE scan or pending connect armed until stopped; two of them would fight over the sensor.
+      await cgm?.stop().catch((e: unknown) => log.warn(`Could not stop the previous CGM: ${String(e)}`));
+      const wanted = useSettings.getState();
+      const usesBle = [pumps.get(wanted.pumpId), cgms.get(wanted.cgmId)].some((p) => p?.meta.transport === 'ble') || wanted.heartbeatDeviceId !== '';
+      if (usesBle) primeBleManager(); // CoreBluetooth hands a state restoration to the manager with the restore identifier
       demoHub.reset();
       const demo = await buildDevices();
       await restoreData(demo);
@@ -320,6 +362,8 @@ export function restartRuntime(): Promise<void> {
       schedulePersist(demo);
       useRuntime.setState({ ready: true, demo, deviceError: null, closedLoopBlocked: closedLoopBlockReason(), now: clock.now(), pump: pump ? await pump.status().catch(() => null) : null });
       startScheduler(demo);
+      startHeartbeats(demo);
+      await syncHeartbeatDevice();
       // native-services: Live Activity, Android foreground service, App Intents state, background task
       startNativeServices({ real: !demo && Boolean(pump || cgm), demo, store, now: () => clock.now() });
       await runLoop();
@@ -332,7 +376,22 @@ export function restartRuntime(): Promise<void> {
 
 export const startRuntime = () => starting ?? restartRuntime();
 
+// After iOS relaunched the app for Bluetooth (state restoration): start the runtime, which arms the CGM and the
+// heartbeat transmitter again. Does nothing before onboarding, and nothing the root layout is not doing already.
+setBleRestoreHandler(() => {
+  void (async () => {
+    const { whenSettingsHydrated } = await import('./background-task');
+    await whenSettingsHydrated();
+    if (!useSettings.getState().onboarded) return;
+    await startRuntime();
+    await syncHeartbeatDevice();
+  })().catch((e: unknown) => log.warn(`Could not restart after BLE restoration: ${String(e)}`));
+});
+
 export const now = () => clock.now();
+
+/** Resolves when the alerts and uploads the last loop cycle started are done. */
+export const afterLoopSettled = (): Promise<void> => lastAfterLoop;
 
 // ── User actions ─────────────────────────────────────────────────────────────
 
